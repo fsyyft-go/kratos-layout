@@ -30,18 +30,19 @@ help:
 	@echo "  make [目标]"
 	@echo ""
 	@echo "目标:"
-	@echo "  api              生成 API 相关的 Protocol Buffers 代码"
-	@echo "  build            构建多平台可执行文件"
-	@echo "  clean            清理项目"
-	@echo "  config           生成配置相关的 Protocol Buffers 代码"
-	@echo "  generate         执行代码生成任务"
-	@echo "  help             显示此帮助信息"
-	@echo "  image            构建 Docker 镜像"
-	@echo "  init             初始化项目所需的工具链"
-	@echo "  lint             执行基本的代码质量检查"
-	@echo "  lint-strict      执行严格的代码质量检查"
-	@echo "  run-task         运行 Docker 容器"
-	@echo "  test             运行所有测试"
+	@echo "  api                生成 API 相关的 Protocol Buffers 代码"
+	@echo "  build              构建多平台可执行文件"
+	@echo "  clean              清理项目"
+	@echo "  config             生成配置相关的 Protocol Buffers 代码"
+	@echo "  devcontainer-init  初始化 DevContainer 环境所需的目录"
+	@echo "  generate           执行代码生成任务"
+	@echo "  help               显示此帮助信息"
+	@echo "  image              构建 Docker 镜像"
+	@echo "  init               初始化项目所需的工具链"
+	@echo "  lint               执行基本的代码质量检查"
+	@echo "  lint-strict        执行严格的代码质量检查"
+	@echo "  run-task           运行 Docker 容器"
+	@echo "  test               运行所有测试"
 	@echo ""
 	@echo "详细信息请查看 Makefile 文件中的注释"
 
@@ -68,6 +69,25 @@ init:
 	go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
 	# 安装依赖注入代码生成工具。
 	go install github.com/google/wire/cmd/wire@latest
+
+# 初始化 DevContainer 环境所需的目录。
+.PHONY: devcontainer-init
+devcontainer-init:
+	@echo "初始化 DevContainer 环境目录..."
+	# 创建 DevContainer 数据目录结构。
+	mkdir -p .devcontainer/data/go/cache
+	mkdir -p .devcontainer/data/go/path
+	mkdir -p .devcontainer/data/data
+	mkdir -p .devcontainer/data/.venv
+	@echo "DevContainer 环境初始化完成"
+	@echo ""
+	@echo "提示："
+	@echo "  - Python 虚拟环境挂载点：.devcontainer/data/.venv（将在容器内初始化）"
+	@echo "  - Go 缓存挂载点：.devcontainer/data/go/cache"
+	@echo "  - Go PATH 挂载点：.devcontainer/data/go/path"
+	@echo "  - 通用数据目录：.devcontainer/data/data"
+	@echo ""
+	@echo "注意：这些目录已在 .gitignore 中配置，不会被提交到 Git。"
 
 # 生成配置相关的 Protocol Buffers 代码。
 .PHONY: config
