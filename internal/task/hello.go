@@ -8,10 +8,10 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/fsyyft-go/kit/log"
+	kit_log "github.com/fsyyft-go/kit/log"
 
 	// 模板：下面这条导入，应用时需要修改。
-	"github.com/fsyyft-go/kratos-layout/internal/conf"
+	app_conf "github.com/fsyyft-go/kratos-layout/internal/conf"
 )
 
 type (
@@ -24,9 +24,9 @@ type (
 	// hello 实现了 Hello 接口。
 	hello struct {
 		// logger 用于记录任务执行过程中的日志信息。
-		logger log.Logger
+		logger kit_log.Logger
 		// cfg 存储应用配置信息。
-		cfg *conf.Config
+		cfg *app_conf.Config
 	}
 )
 
@@ -39,7 +39,7 @@ type (
 // 返回值:
 //   - Hello: 一个新的 Hello 实例。
 //   - error: 创建实例过程中可能发生的错误。
-func NewHello(logger log.Logger, cfg *conf.Config) (Hello, error) {
+func NewHello(logger kit_log.Logger, cfg *app_conf.Config) (Hello, error) {
 	return &hello{logger: logger, cfg: cfg}, nil
 }
 
