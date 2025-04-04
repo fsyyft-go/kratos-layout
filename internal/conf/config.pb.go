@@ -1,4 +1,4 @@
-// Copyright 2025 fsyyft-ai
+// Copyright 2025 fsyyft-go
 //
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
@@ -6,9 +6,9 @@
 // versions:
 // 	protoc-gen-go v1.36.6
 // 	protoc        v5.29.3
-// source: internal/config/config.proto
+// source: internal/conf/config.proto
 
-package config
+package conf
 
 import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
@@ -36,7 +36,7 @@ type Config struct {
 
 func (x *Config) Reset() {
 	*x = Config{}
-	mi := &file_internal_config_config_proto_msgTypes[0]
+	mi := &file_internal_conf_config_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -48,7 +48,7 @@ func (x *Config) String() string {
 func (*Config) ProtoMessage() {}
 
 func (x *Config) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_config_config_proto_msgTypes[0]
+	mi := &file_internal_conf_config_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -61,7 +61,7 @@ func (x *Config) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Config.ProtoReflect.Descriptor instead.
 func (*Config) Descriptor() ([]byte, []int) {
-	return file_internal_config_config_proto_rawDescGZIP(), []int{0}
+	return file_internal_conf_config_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *Config) GetLog() *Log {
@@ -86,7 +86,7 @@ type Log struct {
 
 func (x *Log) Reset() {
 	*x = Log{}
-	mi := &file_internal_config_config_proto_msgTypes[1]
+	mi := &file_internal_conf_config_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -98,7 +98,7 @@ func (x *Log) String() string {
 func (*Log) ProtoMessage() {}
 
 func (x *Log) ProtoReflect() protoreflect.Message {
-	mi := &file_internal_config_config_proto_msgTypes[1]
+	mi := &file_internal_conf_config_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -111,7 +111,7 @@ func (x *Log) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Log.ProtoReflect.Descriptor instead.
 func (*Log) Descriptor() ([]byte, []int) {
-	return file_internal_config_config_proto_rawDescGZIP(), []int{1}
+	return file_internal_conf_config_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *Log) GetType() string {
@@ -135,37 +135,37 @@ func (x *Log) GetLevel() string {
 	return ""
 }
 
-var File_internal_config_config_proto protoreflect.FileDescriptor
+var File_internal_conf_config_proto protoreflect.FileDescriptor
 
-const file_internal_config_config_proto_rawDesc = "" +
+const file_internal_conf_config_proto_rawDesc = "" +
 	"\n" +
-	"\x1cinternal/config/config.proto\x12\x0finternal.config\"0\n" +
-	"\x06Config\x12&\n" +
-	"\x03log\x18\x01 \x01(\v2\x14.internal.config.LogR\x03log\"G\n" +
+	"\x1ainternal/conf/config.proto\x12\rinternal.conf\".\n" +
+	"\x06Config\x12$\n" +
+	"\x03log\x18\x01 \x01(\v2\x12.internal.conf.LogR\x03log\"G\n" +
 	"\x03Log\x12\x12\n" +
 	"\x04type\x18\x01 \x01(\tR\x04type\x12\x16\n" +
 	"\x06output\x18\x02 \x01(\tR\x06output\x12\x14\n" +
-	"\x05level\x18\x03 \x01(\tR\x05levelB8Z6github.com/fsyyft-ai/mcp-rpcxip/internal/config;configb\x06proto3"
+	"\x05level\x18\x03 \x01(\tR\x05levelB7Z5github.com/fsyyft-go/kratos-layout/internal/conf;confb\x06proto3"
 
 var (
-	file_internal_config_config_proto_rawDescOnce sync.Once
-	file_internal_config_config_proto_rawDescData []byte
+	file_internal_conf_config_proto_rawDescOnce sync.Once
+	file_internal_conf_config_proto_rawDescData []byte
 )
 
-func file_internal_config_config_proto_rawDescGZIP() []byte {
-	file_internal_config_config_proto_rawDescOnce.Do(func() {
-		file_internal_config_config_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_internal_config_config_proto_rawDesc), len(file_internal_config_config_proto_rawDesc)))
+func file_internal_conf_config_proto_rawDescGZIP() []byte {
+	file_internal_conf_config_proto_rawDescOnce.Do(func() {
+		file_internal_conf_config_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_internal_conf_config_proto_rawDesc), len(file_internal_conf_config_proto_rawDesc)))
 	})
-	return file_internal_config_config_proto_rawDescData
+	return file_internal_conf_config_proto_rawDescData
 }
 
-var file_internal_config_config_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
-var file_internal_config_config_proto_goTypes = []any{
-	(*Config)(nil), // 0: internal.config.Config
-	(*Log)(nil),    // 1: internal.config.Log
+var file_internal_conf_config_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
+var file_internal_conf_config_proto_goTypes = []any{
+	(*Config)(nil), // 0: internal.conf.Config
+	(*Log)(nil),    // 1: internal.conf.Log
 }
-var file_internal_config_config_proto_depIdxs = []int32{
-	1, // 0: internal.config.Config.log:type_name -> internal.config.Log
+var file_internal_conf_config_proto_depIdxs = []int32{
+	1, // 0: internal.conf.Config.log:type_name -> internal.conf.Log
 	1, // [1:1] is the sub-list for method output_type
 	1, // [1:1] is the sub-list for method input_type
 	1, // [1:1] is the sub-list for extension type_name
@@ -173,26 +173,26 @@ var file_internal_config_config_proto_depIdxs = []int32{
 	0, // [0:1] is the sub-list for field type_name
 }
 
-func init() { file_internal_config_config_proto_init() }
-func file_internal_config_config_proto_init() {
-	if File_internal_config_config_proto != nil {
+func init() { file_internal_conf_config_proto_init() }
+func file_internal_conf_config_proto_init() {
+	if File_internal_conf_config_proto != nil {
 		return
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_internal_config_config_proto_rawDesc), len(file_internal_config_config_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_internal_conf_config_proto_rawDesc), len(file_internal_conf_config_proto_rawDesc)),
 			NumEnums:      0,
 			NumMessages:   2,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
-		GoTypes:           file_internal_config_config_proto_goTypes,
-		DependencyIndexes: file_internal_config_config_proto_depIdxs,
-		MessageInfos:      file_internal_config_config_proto_msgTypes,
+		GoTypes:           file_internal_conf_config_proto_goTypes,
+		DependencyIndexes: file_internal_conf_config_proto_depIdxs,
+		MessageInfos:      file_internal_conf_config_proto_msgTypes,
 	}.Build()
-	File_internal_config_config_proto = out.File
-	file_internal_config_config_proto_goTypes = nil
-	file_internal_config_config_proto_depIdxs = nil
+	File_internal_conf_config_proto = out.File
+	file_internal_conf_config_proto_goTypes = nil
+	file_internal_conf_config_proto_depIdxs = nil
 }

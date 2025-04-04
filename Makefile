@@ -1,4 +1,4 @@
-INTERNAL_CONFIG_PROTO_FILES=$(shell find internal/config -name *.proto)
+INTERNAL_CONF_PROTO_FILES=$(shell find internal/conf -name *.proto)
 
 .PHONY: init
 init:
@@ -18,7 +18,7 @@ config:
 	protoc --proto_path=. \
 	       --proto_path=./api/third_party \
  	       --go_out=paths=source_relative:. \
-	       $(INTERNAL_CONFIG_PROTO_FILES)
+	       $(INTERNAL_CONF_PROTO_FILES)
 
 .PHONY: generate
 generate:

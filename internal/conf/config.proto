@@ -1,12 +1,12 @@
-// Copyright 2025 fsyyft-ai
+// Copyright 2025 fsyyft-go
 //
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
 syntax = "proto3";
 
-package internal.config;
+package internal.conf;
 
-option go_package = "github.com/fsyyft-ai/mcp-rpcxip/internal/config;config";
+option go_package = "github.com/fsyyft-go/kratos-layout/internal/conf;conf";
 
 // Config 定义应用程序的总体配置结构。
 message Config {
