@@ -5,9 +5,9 @@
 package main
 
 import (
-	"fmt"
+	app_task "github.com/fsyyft-go/kratos-layout/internal/app/task"
 )
 
 func main() {
-	fmt.Println("Hello, World!")
+	app_task.Run()
 }
