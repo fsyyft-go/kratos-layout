@@ -2,10 +2,10 @@
 # 
 # Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
-# If you prefer the allow list template instead of the deny list, see community template:
-# https://github.com/github/gitignore/blob/main/community/Golang/Go.AllowList.gitignore
-#
-# Binaries for programs and plugins
+# 如果您更倾向于使用允许列表模板而不是拒绝列表，请参考社区模板：
+# https://github.com/github/gitignore/blob/main/community/Golang/Go.AllowList.gitignore。
+
+# 程序和插件的二进制文件。
 *.exe
 *.exe~
 *.dll
@@ -14,21 +14,24 @@
 bin/
 out/
 
-# Test binary, built with `go test -c`
+# 使用 `go test -c` 命令构建的测试二进制文件。
 *.test
 
-# Output of the go coverage tool, specifically when used with LiteIDE
+# 使用 LiteIDE 时 go coverage 工具生成的覆盖率文件。
 *.out
 
-# Dependency directories (remove the comment below to include it)
+# 依赖目录（取消下面的注释以包含它）。
 # vendor/
 
-# Go workspace file
+# Go 工作区文件。
 go.work
 go.work.sum
 
-# env file
+# 环境配置文件。
 .env
 
+# 日志文件。
 *.log
+
+# Visual Studio Code 配置目录。
 .vscode/
