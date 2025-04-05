@@ -2,6 +2,7 @@
 //
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
+// Package server 提供了 HTTP 服务器的实现和配置，包括路由处理和中间件设置。
 package server
 
 import (

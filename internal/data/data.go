@@ -2,6 +2,7 @@
 //
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
+// Package data 实现了应用程序的数据访问层，提供数据存储、检索和管理的功能。
 package data
 
 import (

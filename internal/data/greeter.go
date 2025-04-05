@@ -43,26 +43,26 @@ func NewGreeterRepo(logger kit_log.Logger, conf *app_conf.Config, data Data) app
 // Save 保存一个 Greeter 实体，返回保存后的实体和可能的错误。
 //
 // 参数：
-//   - ctx：上下文信息。
+//   - ctx：上下文信息（当前未使用）。
 //   - g：需要保存的 Greeter 实体。
 //
 // 返回：
 //   - 保存后的 Greeter 实体。
 //   - 可能发生的错误。
-func (r *greeterRepo) Save(ctx context.Context, g *app_biz.Greeter) (*app_biz.Greeter, error) {
+func (r *greeterRepo) Save(_ context.Context, g *app_biz.Greeter) (*app_biz.Greeter, error) {
 	return g, nil
 }
 
 // Update 更新一个 Greeter 实体，返回更新后的实体和可能的错误。
 //
 // 参数：
-//   - ctx：上下文信息。
+//   - ctx：上下文信息（当前未使用）。
 //   - g：需要更新的 Greeter 实体。
 //
 // 返回：
 //   - 更新后的 Greeter 实体。
 //   - 可能发生的错误。
-func (r *greeterRepo) Update(ctx context.Context, g *app_biz.Greeter) (*app_biz.Greeter, error) {
+func (r *greeterRepo) Update(_ context.Context, g *app_biz.Greeter) (*app_biz.Greeter, error) {
 	return g, nil
 }
 

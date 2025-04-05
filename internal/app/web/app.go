@@ -2,6 +2,7 @@
 //
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
+// Package web 提供了 Web 应用程序的入口点和运行时管理，包括配置加载、服务启动和信号处理。
 package web
 
 import (

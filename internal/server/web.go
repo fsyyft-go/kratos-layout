@@ -8,8 +8,11 @@ import (
 	"context"
 
 	"github.com/gin-gonic/gin"
+	"github.com/go-kratos/kratos/v2/errors"
+	"github.com/go-kratos/kratos/v2/middleware/recovery"
 	"github.com/go-kratos/kratos/v2/transport/http"
 
+	kit_kratos_middleware_validate "github.com/fsyyft-go/kit/kratos/middleware/validate"
 	kit_kratos_transport_http "github.com/fsyyft-go/kit/kratos/transport/http"
 	kit_log "github.com/fsyyft-go/kit/log"
 	kit_runtime "github.com/fsyyft-go/kit/runtime"
@@ -40,7 +43,20 @@ type (
 	}
 )
 
-func NewWebServer(logger kit_log.Logger, conf *app_conf.Config, greeter app_helloworld_v1.GreeterHTTPServer) (WebServer, func(), error) {
+// NewWebServer 创建并配置一个新的 Web 服务器实例。
+//
+// 参数：
+//   - logger：日志记录器，用于服务日志记录。
+//   - conf：服务配置信息。
+//   - greeter：问候服务的 HTTP 处理器。
+//
+// 返回：
+//   - WebServer：配置好的 Web 服务器实例。
+//   - func()：清理函数。
+//   - error：初始化过程中可能发生的错误。
+func NewWebServer(logger kit_log.Logger, conf *app_conf.Config,
+	greeter app_helloworld_v1.GreeterHTTPServer,
+) (WebServer, func(), error) {
 	var err error
 
 	// 创建带有领域驱动设计和模块标记的日志记录器。
@@ -51,11 +67,19 @@ func NewWebServer(logger kit_log.Logger, conf *app_conf.Config, greeter app_hell
 		conf:   conf,
 	}
 
-	server := http.NewServer()
+	server := http.NewServer(
+		http.Middleware(
+			recovery.Recovery(),
+			kit_kratos_middleware_validate.Validator(kit_kratos_middleware_validate.WithValidateCallback(webServer.validateCallback)),
+		),
+	)
+
+	app_helloworld_v1.RegisterGreeterHTTPServer(server, greeter)
 
 	// 初始化 Gin 引擎，并配置默认中间件。
 	webServer.engine = gin.Default()
 	// 将 Kratos HTTP 服务解析到 Gin 引擎中。
+	// TODO: 需要优化，需要将 Mux 格式路由转为 Gin 格式路由。
 	kit_kratos_transport_http.Parse(server, webServer.engine)
 
 	var cleanup = func() {}
@@ -63,16 +87,52 @@ func NewWebServer(logger kit_log.Logger, conf *app_conf.Config, greeter app_hell
 	return webServer, cleanup, err
 }
 
-func (s *webServer) Start(ctx context.Context) error {
-	return nil
+// Start 实现启动 Web 服务器的功能。
+// 使用 Gin 引擎监听指定端口。
+//
+// 参数：
+//   - ctx：上下文信息（当前未使用）。
+//
+// 返回值：
+//   - error：启动过程中可能发生的错误。
+func (s *webServer) Start(_ context.Context) error {
+	// 使用 Gin 引擎在配置的端口上启动 HTTP 服务。
+	return s.engine.Run(s.conf.GetServer().GetHttp().GetAddr())
 }
 
-// Stop implements WebServer.
-func (s *webServer) Stop(ctx context.Context) error {
+// Stop 实现停止 Web 服务器的功能。
+//
+// 参数：
+//   - ctx：上下文信息（当前未使用）。
+//
+// 返回值：
+//   - error：停止过程中可能发生的错误。
+func (s *webServer) Stop(_ context.Context) error {
 	panic("unimplemented")
 }
 
-// Engine implements WebServer.
+// Engine 返回 Gin 引擎实例。
+//
+// 返回值：
+//   - *gin.Engine：配置好的 Gin 引擎实例。
 func (s *webServer) Engine() *gin.Engine {
 	panic("unimplemented")
+}
+
+// validateCallback 处理请求验证失败的回调函数。
+// 记录请求和验证错误，并返回标准化的错误响应。
+//
+// 参数：
+//   - ctx：上下文信息（当前未使用）。
+//   - req：原始请求。
+//   - errValidate：验证过程中产生的错误。
+//
+// 返回值：
+//   - interface{}：处理后的请求（本实现中返回 nil）。
+//   - error：格式化后的错误信息。
+func (s *webServer) validateCallback(_ context.Context, req interface{}, errValidate error) (interface{}, error) {
+	// 记录请求和验证错误信息。
+	s.logger.WithField("req", req).WithField("errValidate", errValidate).Info("validateCallback")
+	// 返回标准化的错误响应。
+	return nil, errors.BadRequest("VALIDATOR", "请求参数错误，详见日志")
 }
