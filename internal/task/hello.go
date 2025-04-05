@@ -6,6 +6,7 @@ package task
 
 import (
 	"context"
+	"time"
 
 	kit_log "github.com/fsyyft-go/kit/log"
 
@@ -50,11 +51,16 @@ func NewHello(logger kit_log.Logger, cfg *app_conf.Config) (Hello, error) {
 // 返回值:
 //   - error: 执行过程中可能发生的错误。
 func (h *hello) Run(ctx context.Context) error {
-	select {
-	case <-ctx.Done():
-		return ctx.Err()
-	default:
-		h.logger.Info("Hello World!")
+	ticker := time.NewTicker(time.Minute)
+FOR:
+	for {
+		select {
+		case <-ctx.Done():
+			break FOR
+		case <-ticker.C:
+			h.logger.Info("Hello World!")
+		}
 	}
-	return nil
+
+	return ctx.Err()
 }
