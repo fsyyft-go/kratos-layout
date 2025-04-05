@@ -3,7 +3,7 @@ pipeline {
     // 定义执行环境配置。
     agent {
         // 使用 Docker 容器作为执行环境。
-        docker {
+        dockerContainer {
             // 指定使用 golang 1.24 版本的基础镜像。
             image 'golang:1.24'
             // 配置 Docker 容器启动参数，挂载缓存目录以提升构建性能：
