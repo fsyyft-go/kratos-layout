@@ -10,6 +10,25 @@ IMAGE_NAME=fsyyft/kratos-layout
 # 获取当前日期，格式为年月日（YYMMDD）。
 DATE=$(shell date +%y%m%d)
 
+## 默认目标，显示帮助信息。
+.PHONY: help
+help:
+	@echo "使用方法:"
+	@echo "  make [目标]"
+	@echo ""
+	@echo "目标:"
+	@echo "  build            构建多平台可执行文件"
+	@echo "  config           生成配置相关的 Protocol Buffers 代码"
+	@echo "  generate         执行代码生成任务"
+	@echo "  help             显示此帮助信息"
+	@echo "  image            构建 Docker 镜像"
+	@echo "  init             初始化项目所需的工具链"
+	@echo "  lint             执行基本的代码质量检查"
+	@echo "  lint-strict      执行严格的代码质量检查"
+	@echo "  run-task         运行 Docker 容器"
+	@echo ""
+	@echo "详细信息请查看 Makefile 文件中的注释"
+
 # 初始化项目所需的工具链。
 .PHONY: init
 init:
