@@ -16,14 +16,33 @@ import (
 
 	// 模板：下面这条导入，应用时需要修改。
 	app_conf "github.com/fsyyft-go/kratos-layout/internal/conf"
+	"github.com/fsyyft-go/kratos-layout/internal/task"
 )
 
-var (
-	ProviderSet = wire.NewSet(
-		NewLogger,
-	)
+// App 是任务执行器的应用实例。
+type App struct {
+	hello *task.Hello
+}
+
+// NewApp 创建一个新的应用实例。
+func NewApp(hello *task.Hello) *App {
+	return &App{
+		hello: hello,
+	}
+}
+
+// ProviderSet 是 wire 的依赖注入提供者集合。
+// 包含了创建应用实例所需的所有依赖。
+var ProviderSet = wire.NewSet(
+	NewApp,
 )
 
+// Run 启动并运行任务执行器。
+// 该函数负责：
+//   - 解析命令行参数
+//   - 加载配置文件
+//   - 设置信号处理
+//   - 初始化并启动服务
 func Run() {
 	// 定义配置文件路径变量，默认为"configs/config.yaml"。
 	var configPath string
