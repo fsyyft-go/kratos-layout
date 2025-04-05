@@ -15,12 +15,12 @@ import (
 
 type (
 	greeterService struct {
-		logger *kit_log.Logger
+		logger kit_log.Logger
 		conf   *app_conf.Config
 	}
 )
 
-func NewGreeterService(logger *kit_log.Logger, conf *app_conf.Config, greeter *app_helloworld_v1.GreeterServer) app_helloworld_v1.GreeterHTTPServer {
+func NewGreeterService(logger kit_log.Logger, conf *app_conf.Config) app_helloworld_v1.GreeterHTTPServer {
 	return &greeterService{
 		logger: logger,
 		conf:   conf,
