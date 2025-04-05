@@ -42,4 +42,4 @@ EXPOSE 32788
 VOLUME ["/app/logs"]
 
 # 启动应用。
-CMD ["./task --config=configs/config.yaml"]
+CMD ["./task", "--config=configs/config.yaml"]

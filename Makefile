@@ -1,4 +1,8 @@
 INTERNAL_CONF_PROTO_FILES=$(shell find internal/conf -name *.proto)
+
+# 日志目录。
+LOG_DIR=logs
+
 # 镜像名称，格式为 用户名 / 项目名。
 IMAGE_NAME=fsyyft/kratos-layout
 
@@ -63,3 +67,12 @@ build:
 # 标签包括日期标签和 latest 标签。
 image:
 	docker build --target task -t $(IMAGE_NAME)-task:$(DATE) -t $(IMAGE_NAME)-task:latest .
+
+# 运行容器。
+# 将容器内的 /app/logs 目录挂载到主机的 ./logs 目录。
+.PHONY: run-task
+run-task:
+	mkdir -p $(LOG_DIR)
+	docker run \
+		-v $(PWD)/$(LOG_DIR)/container:/app/logs \
+		$(IMAGE_NAME)-task
