@@ -8,6 +8,9 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/google/wire"
 
@@ -36,6 +39,22 @@ func Run() {
 		return
 	}
 
+	// 增加监听操作系统信号，以优雅地关闭服务器。
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	// 创建信号通道。
+	signalChan := make(chan os.Signal, 1)
+	// 监听 SIGINT 和 SIGTERM 信号。
+	signal.Notify(signalChan, syscall.SIGINT, syscall.SIGTERM)
+
+	// 在单独的 goroutine 中处理信号。
+	go func() {
+		sig := <-signalChan
+		fmt.Printf("接收到系统信号: %v\n", sig)
+		cancel() // 取消上下文。
+	}()
+
 	// 通过 Wire 框架生成的 wireServer 函数初始化服务。
 	// 该函数会自动注入所有依赖项并返回配置好的 Web 服务器实例。
 	if webServer, cleanup, err := wireServer(cfg); nil != err {
@@ -44,6 +63,6 @@ func Run() {
 		cleanup()
 	} else {
 		// 启动 Web 服务器。
-		_ = webServer.Run(context.TODO())
+		_ = webServer.Run(ctx)
 	}
 }
