@@ -43,5 +43,7 @@ message Server {
     // timeout 定义 HTTP 请求的超时时间。
     google.protobuf.Duration timeout = 3;
   }
+  // 定义 HTTP 服务器的配置参数。
+  HTTP http = 1;
 }
 

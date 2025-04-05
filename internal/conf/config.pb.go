@@ -147,7 +147,9 @@ func (x *Log) GetLevel() string {
 
 // Server 定义服务器相关的配置参数。
 type Server struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// 定义 HTTP 服务器的配置参数。
+	Http          *Server_HTTP `protobuf:"bytes,1,opt,name=http,proto3" json:"http,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -180,6 +182,13 @@ func (x *Server) ProtoReflect() protoreflect.Message {
 // Deprecated: Use Server.ProtoReflect.Descriptor instead.
 func (*Server) Descriptor() ([]byte, []int) {
 	return file_internal_conf_config_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *Server) GetHttp() *Server_HTTP {
+	if x != nil {
+		return x.Http
+	}
+	return nil
 }
 
 // HTTP 定义 HTTP 服务器的配置参数。
@@ -257,8 +266,9 @@ const file_internal_conf_config_proto_rawDesc = "" +
 	"\x03Log\x12\x12\n" +
 	"\x04type\x18\x01 \x01(\tR\x04type\x12\x16\n" +
 	"\x06output\x18\x02 \x01(\tR\x06output\x12\x14\n" +
-	"\x05level\x18\x03 \x01(\tR\x05level\"s\n" +
-	"\x06Server\x1ai\n" +
+	"\x05level\x18\x03 \x01(\tR\x05level\"\xa3\x01\n" +
+	"\x06Server\x12.\n" +
+	"\x04http\x18\x01 \x01(\v2\x1a.internal.conf.Server.HTTPR\x04http\x1ai\n" +
 	"\x04HTTP\x12\x18\n" +
 	"\anetwork\x18\x01 \x01(\tR\anetwork\x12\x12\n" +
 	"\x04addr\x18\x02 \x01(\tR\x04addr\x123\n" +
@@ -287,12 +297,13 @@ var file_internal_conf_config_proto_goTypes = []any{
 var file_internal_conf_config_proto_depIdxs = []int32{
 	1, // 0: internal.conf.Config.log:type_name -> internal.conf.Log
 	2, // 1: internal.conf.Config.server:type_name -> internal.conf.Server
-	4, // 2: internal.conf.Server.HTTP.timeout:type_name -> google.protobuf.Duration
-	3, // [3:3] is the sub-list for method output_type
-	3, // [3:3] is the sub-list for method input_type
-	3, // [3:3] is the sub-list for extension type_name
-	3, // [3:3] is the sub-list for extension extendee
-	0, // [0:3] is the sub-list for field type_name
+	3, // 2: internal.conf.Server.http:type_name -> internal.conf.Server.HTTP
+	4, // 3: internal.conf.Server.HTTP.timeout:type_name -> google.protobuf.Duration
+	4, // [4:4] is the sub-list for method output_type
+	4, // [4:4] is the sub-list for method input_type
+	4, // [4:4] is the sub-list for extension type_name
+	4, // [4:4] is the sub-list for extension extendee
+	0, // [0:4] is the sub-list for field type_name
 }
 
 func init() { file_internal_conf_config_proto_init() }
