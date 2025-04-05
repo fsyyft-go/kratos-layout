@@ -2,7 +2,7 @@
 //
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
-package task
+package web
 
 import (
 	"context"
@@ -64,12 +64,12 @@ func Run() {
 
 	// 通过 Wire 框架生成的 wireServer 函数初始化服务。
 	// 该函数会自动注入所有依赖项并返回配置好的 Web 服务器实例。
-	if task, cleanup, err := wireTask(cfg); nil != err {
+	if task, cleanup, err := wireWeb(cfg); nil != err {
 		fmt.Printf("初始化失败：%v", err)
 		// 调用清理函数释放已分配的资源。
 		cleanup()
 	} else {
 		// 启动 Web 服务器。
-		_ = task.Run(ctx)
+		_ = task.Start(ctx)
 	}
 }
