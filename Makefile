@@ -1,4 +1,9 @@
 INTERNAL_CONF_PROTO_FILES=$(shell find internal/conf -name *.proto)
+# 镜像名称，格式为 用户名 / 项目名。
+IMAGE_NAME=fsyyft/kratos-layout
+
+# 获取当前日期，格式为 yyMMdd。
+DATE=$(shell date +%y%m%d)
 
 .PHONY: init
 init:
@@ -53,3 +58,8 @@ build:
 	mkdir -p bin/windows_arm64 && CGO_ENABLED=0 GOOS=windows GOARCH=arm64 go build -o bin/windows_arm64/ ./...
 	mkdir -p bin/windows_amd64 && CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -o bin/windows_amd64/ ./...
 	mkdir -p logs && rm -rf logs/upx.log && for exec in ./bin/linux_*/* ./bin/windows_*/*; do upx -9 $$exec >> logs/upx.log || break ; done
+
+# 构建 Docker 镜像并打标签。
+# 标签包括日期标签和 latest 标签。
+image:
+	docker build --target task -t $(IMAGE_NAME)-task:$(DATE) -t $(IMAGE_NAME)-task:latest .
