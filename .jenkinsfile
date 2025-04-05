@@ -8,9 +8,10 @@ pipeline {
             // 指定使用 golang 1.24 版本的基础镜像。
             image 'golang:1.24'
             // 配置 Docker 容器启动参数，挂载缓存目录以提升构建性能：
+            // 需要提前在 Jenkins 系统管理 -> 系统配置 -> 环境变量中配置 HOST-GO-CACHE 变量，指向本地的 go 缓存目录。
             // - 将本地的 go-build 缓存目录挂载到容器内。
             // - 将本地的 go pkg 目录挂载到容器内。
-            args '-v $HOME/go/cache/go-build:/go/cache/go-build -v $HOME/go/pkg:/go/pkg'
+            args '-v ${HOST-GO-CACHE}/go-build:/go/cache/go-build -v ${HOST-GO-CACHE}/pkg:/go/pkg'
         }
     }
     
@@ -20,6 +21,8 @@ pipeline {
         GOCACHE = '/go/cache/go-build'
         // 设置 Go 语言工作目录。
         GOPATH = '/go'
+        // 设置 Go 语言代理。
+        GOPROXY = 'https://goproxy.cn,direct'
     }
     
     // 定义流水线各个阶段。
