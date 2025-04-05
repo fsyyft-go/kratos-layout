@@ -1,0 +1,35 @@
+// Jenkins Pipeline 配置文件，用于定义持续集成流程。
+pipeline {
+    // 定义执行环境配置。
+    agent {
+        // 使用 Docker 容器作为执行环境。
+        docker {
+            // 指定使用 golang 1.24 版本的基础镜像。
+            image 'golang:1.24'
+            // 配置 Docker 容器启动参数，挂载缓存目录以提升构建性能：
+            // - 将本地的 go-build 缓存目录挂载到容器内。
+            // - 将本地的 go pkg 目录挂载到容器内。
+            args '-v $HOME/go/cache/go-build:/go/cache/go-build -v $HOME/go/pkg:/go/pkg'
+        }
+    }
+    
+    // 配置环境变量。
+    environment {
+        // 设置 Go 语言编译缓存目录。
+        GOCACHE = '/go/cache/go-build'
+        // 设置 Go 语言工作目录。
+        GOPATH = '/go'
+    }
+    
+    // 定义流水线各个阶段。
+    stages {        
+        // 测试阶段。
+        stage('Test') {
+            // 定义测试阶段的执行步骤。
+            steps {
+                // 执行 Go 语言测试命令，使用 -v 参数显示详细信息，测试所有包。
+                sh 'go test -v ./...'
+            }
+        }
+    }
+}
