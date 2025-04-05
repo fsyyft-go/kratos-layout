@@ -7,6 +7,7 @@ package task
 import (
 	"fmt"
 	"os"
+	"strings"
 	"sync"
 
 	kit_log "github.com/fsyyft-go/kit/log"
@@ -55,8 +56,15 @@ func NewLogger(cfg *app_conf.Config) (kit_log.Logger, func(), error) {
 					l.WithField("error", err).Error("解析日志级别失败")
 				} else {
 					l.SetLevel(level)
-					// 添加进程 ID 字段方便调试
-					l = l.WithField("pid", os.Getpid())
+					// 获取 hostname 的短形式，例如 a.b.com 则是只返回 a。
+					hostname, err := os.Hostname()
+					if nil != err {
+						hostname = "unknown"
+					} else {
+						hostname = strings.Split(hostname, ".")[0]
+					}
+					// 添加进程 ID 字段、主机名字段，方便调试。
+					l = l.WithField("pid", os.Getpid()).WithField("hn", hostname)
 
 					l.WithField("log_level", level).Info("设置日志级别")
 				}
