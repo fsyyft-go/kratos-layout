@@ -26,6 +26,7 @@ help:
 	@echo "  lint             执行基本的代码质量检查"
 	@echo "  lint-strict      执行严格的代码质量检查"
 	@echo "  run-task         运行 Docker 容器"
+	@echo "  test             运行所有测试"
 	@echo ""
 	@echo "详细信息请查看 Makefile 文件中的注释"
 
@@ -80,6 +81,13 @@ lint:
 lint-strict:
 	# 启用大部分 linter，增加检查严格程度，设置 10 分钟超时时间。
 	golangci-lint run --timeout=10m --enable=govet,errcheck,staticcheck,ineffassign,unused,gosec,misspell,revive --disable=lll,exhaustruct,ireturn,nonamedreturns,varnamelen,wrapcheck
+
+# 运行所有测试。
+# 使用 -v 标志显示详细的测试输出。
+# 使用 -race 标志检测数据竞争。
+test:
+	mkdir -p $(LOG_DIR)
+	go test -v -race ./...
 
 # 构建多平台可执行文件。
 .PHONY: build
