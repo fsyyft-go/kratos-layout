@@ -16,25 +16,12 @@ import (
 
 	// 模板：下面这条导入，应用时需要修改。
 	app_conf "github.com/fsyyft-go/kratos-layout/internal/conf"
-	"github.com/fsyyft-go/kratos-layout/internal/task"
 )
-
-// App 是任务执行器的应用实例。
-type App struct {
-	hello *task.Hello
-}
-
-// NewApp 创建一个新的应用实例。
-func NewApp(hello *task.Hello) *App {
-	return &App{
-		hello: hello,
-	}
-}
 
 // ProviderSet 是 wire 的依赖注入提供者集合。
 // 包含了创建应用实例所需的所有依赖。
 var ProviderSet = wire.NewSet(
-	NewApp,
+	NewLogger,
 )
 
 // Run 启动并运行任务执行器。
@@ -76,12 +63,12 @@ func Run() {
 
 	// 通过 Wire 框架生成的 wireServer 函数初始化服务。
 	// 该函数会自动注入所有依赖项并返回配置好的 Web 服务器实例。
-	if webServer, cleanup, err := wireServer(cfg); nil != err {
+	if task, cleanup, err := wireTask(cfg); nil != err {
 		fmt.Printf("初始化失败：%v", err)
 		// 调用清理函数释放已分配的资源。
 		cleanup()
 	} else {
 		// 启动 Web 服务器。
-		_ = webServer.Run(ctx)
+		_ = task.Run(ctx)
 	}
 }

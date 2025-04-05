@@ -8,6 +8,8 @@ import (
 	"github.com/google/wire"
 )
 
-// ProviderSet 是 wire 的依赖注入提供者集合。
-// 包含了创建任务实例所需的所有依赖。
-var ProviderSet = wire.NewSet(NewHello)
+var (
+	// ProviderSet 是 wire 的依赖注入提供者集合。
+	// 包含了创建任务实例所需的所有依赖。
+	ProviderSet = wire.NewSet(NewHello)
+)

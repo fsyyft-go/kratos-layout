@@ -7,18 +7,18 @@
 package task
 
 import (
-	kit_conf "github.com/fsyyft-go/kratos-layout/internal/conf"
-	kit_task "github.com/fsyyft-go/kratos-layout/internal/task"
+	app_conf "github.com/fsyyft-go/kratos-layout/internal/conf"
+	app_task "github.com/fsyyft-go/kratos-layout/internal/task"
 )
 
 // Injectors from wire.go:
 
-func wireServer(cfg *kit_conf.Config) (kit_task.Hello, func(), error) {
+func wireTask(cfg *app_conf.Config) (app_task.Hello, func(), error) {
 	logLogger, cleanup, err := NewLogger(cfg)
 	if err != nil {
 		return nil, nil, err
 	}
-	hello, err := kit_task.NewHello(logLogger, cfg)
+	hello, err := app_task.NewHello(logLogger, cfg)
 	if err != nil {
 		cleanup()
 		return nil, nil, err
