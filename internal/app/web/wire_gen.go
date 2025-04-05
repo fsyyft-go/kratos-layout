@@ -11,7 +11,9 @@
 package web
 
 import (
+	app_biz "github.com/fsyyft-go/kratos-layout/internal/biz"
 	app_conf "github.com/fsyyft-go/kratos-layout/internal/conf"
+	app_data "github.com/fsyyft-go/kratos-layout/internal/data"
 	app_log "github.com/fsyyft-go/kratos-layout/internal/log"
 	app_server "github.com/fsyyft-go/kratos-layout/internal/server"
 	app_service "github.com/fsyyft-go/kratos-layout/internal/service"
@@ -24,13 +26,22 @@ func wireWeb(conf2 *app_conf.Config) (app_server.WebServer, func(), error) {
 	if err != nil {
 		return nil, nil, err
 	}
-	greeterHTTPServer := app_service.NewGreeterService(logger, conf2)
-	webServer, cleanup2, err := app_server.NewWebServer(logger, conf2, greeterHTTPServer)
+	dataData, cleanup2, err := app_data.NewData(logger, conf2)
 	if err != nil {
 		cleanup()
 		return nil, nil, err
 	}
+	greeterRepo := app_data.NewGreeterRepo(logger, conf2, dataData)
+	greeterUsecase := app_biz.NewGreeterUsecase(logger, conf2, greeterRepo)
+	greeterHTTPServer := app_service.NewGreeterService(logger, conf2, greeterUsecase)
+	webServer, cleanup3, err := app_server.NewWebServer(logger, conf2, greeterHTTPServer)
+	if err != nil {
+		cleanup2()
+		cleanup()
+		return nil, nil, err
+	}
 	return webServer, func() {
+		cleanup3()
 		cleanup2()
 		cleanup()
 	}, nil

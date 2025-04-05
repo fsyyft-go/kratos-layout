@@ -10,6 +10,7 @@ import (
 	kit_log "github.com/fsyyft-go/kit/log"
 
 	app_helloworld_v1 "github.com/fsyyft-go/kratos-layout/api/helloworld/v1"
+	app_biz "github.com/fsyyft-go/kratos-layout/internal/biz"
 	app_conf "github.com/fsyyft-go/kratos-layout/internal/conf"
 )
 
@@ -17,13 +18,15 @@ type (
 	greeterService struct {
 		logger kit_log.Logger
 		conf   *app_conf.Config
+		uc     app_biz.GreeterUsecase
 	}
 )
 
-func NewGreeterService(logger kit_log.Logger, conf *app_conf.Config) app_helloworld_v1.GreeterHTTPServer {
+func NewGreeterService(logger kit_log.Logger, conf *app_conf.Config, uc app_biz.GreeterUsecase) app_helloworld_v1.GreeterHTTPServer {
 	return &greeterService{
 		logger: logger,
 		conf:   conf,
+		uc:     uc,
 	}
 }
 

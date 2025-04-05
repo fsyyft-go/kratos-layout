@@ -11,7 +11,9 @@ import (
 	"github.com/google/wire"
 
 	// 模板：下面这条导入，应用时需要修改。
+	app_biz "github.com/fsyyft-go/kratos-layout/internal/biz"
 	app_conf "github.com/fsyyft-go/kratos-layout/internal/conf"
+	app_data "github.com/fsyyft-go/kratos-layout/internal/data"
 	app_server "github.com/fsyyft-go/kratos-layout/internal/server"
 	app_service "github.com/fsyyft-go/kratos-layout/internal/service"
 )
@@ -22,7 +24,9 @@ func wireWeb(conf *app_conf.Config) (app_server.WebServer, func(), error) {
 	// make generate 如果无法生成时，可以尝试使用 wire ./internal/app/web 生成，可以看到更加详细的错误处理。
 	panic(wire.Build(
 		ProviderSet,
-		app_service.ProviderSet,
 		app_server.ProviderSet,
+		app_service.ProviderSet,
+		app_biz.ProviderSet,
+		app_data.ProviderSet,
 	))
 }
