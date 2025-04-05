@@ -1,3 +1,6 @@
+# 查找 api 目录下所有的 proto 文件。
+API_PROTO_FILES=$(shell find api -not -path "api/third_party/*" -name *.proto)
+
 # 查找 internal/conf 目录下所有的 proto 文件。
 INTERNAL_CONF_PROTO_FILES=$(shell find internal/conf -name *.proto)
 
@@ -27,8 +30,9 @@ help:
 	@echo "  make [目标]"
 	@echo ""
 	@echo "目标:"
-	@echo "  clean            清理项目"
+	@echo "  api              生成 API 相关的 Protocol Buffers 代码"
 	@echo "  build            构建多平台可执行文件"
+	@echo "  clean            清理项目"
 	@echo "  config           生成配置相关的 Protocol Buffers 代码"
 	@echo "  generate         执行代码生成任务"
 	@echo "  help             显示此帮助信息"
@@ -72,6 +76,17 @@ config:
 	       --proto_path=./api/third_party \
  	       --go_out=paths=source_relative:. \
 	       $(INTERNAL_CONF_PROTO_FILES)
+
+# 生成 API 相关的 Protocol Buffers 代码。
+.PHONY: api
+api:
+	protoc --proto_path=. \
+	       --proto_path=./api/third_party \
+ 	       --go_out=paths=source_relative:. \
+ 	       --go-http_out=paths=source_relative:. \
+ 	       --go-grpc_out=paths=source_relative:. \
+ 	       --openapi_out==paths=source_relative:./api \
+	       $(API_PROTO_FILES)
 
 # 执行代码生成任务。
 .PHONY: generate
