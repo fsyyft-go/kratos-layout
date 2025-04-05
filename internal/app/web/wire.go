@@ -23,6 +23,6 @@ func wireWeb(conf *app_conf.Config) (app_server.WebServer, func(), error) {
 	panic(wire.Build(
 		ProviderSet,
 		app_service.ProviderSet,
-		app_server.NewWebServer,
+		app_server.ProviderSet,
 	))
 }
