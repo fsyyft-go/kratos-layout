@@ -88,6 +88,15 @@ api:
  	       --openapi_out==paths=source_relative:./api \
 	       $(API_PROTO_FILES)
 
+# 生成验证相关的 Protocol Buffers 代码。
+.PHONY: validate
+validate:
+	protoc --proto_path=. \
+           --proto_path=./api/third_party \
+           --go_out=paths=source_relative:. \
+           --validate_out=paths=source_relative,lang=go:. \
+           $(API_PROTO_FILES)
+
 # 执行代码生成任务。
 .PHONY: generate
 generate:
