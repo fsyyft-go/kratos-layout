@@ -35,6 +35,7 @@ go.work.sum
 
 # Visual Studio Code 配置目录。
 .vscode/
+.idea/
 
 # 操作系统的一些临时文件。
 .DS_Store
