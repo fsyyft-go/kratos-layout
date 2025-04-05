@@ -6,7 +6,6 @@ package task
 
 import (
 	"context"
-	"fmt"
 
 	kit_log "github.com/fsyyft-go/kit/log"
 
@@ -51,6 +50,11 @@ func NewHello(logger kit_log.Logger, cfg *app_conf.Config) (Hello, error) {
 // 返回值:
 //   - error: 执行过程中可能发生的错误。
 func (h *hello) Run(ctx context.Context) error {
-	fmt.Println("Hello Run")
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	default:
+		h.logger.Info("Hello World!")
+	}
 	return nil
 }
