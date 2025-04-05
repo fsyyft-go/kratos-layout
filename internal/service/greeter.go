@@ -13,20 +13,14 @@ import (
 	app_conf "github.com/fsyyft-go/kratos-layout/internal/conf"
 )
 
-var (
-	_ app_helloworld_v1.GreeterServer = (*greeterService)(nil)
-)
-
 type (
 	greeterService struct {
-		app_helloworld_v1.UnimplementedGreeterServer
-
 		logger *kit_log.Logger
 		conf   *app_conf.Config
 	}
 )
 
-func NewGreeterService(logger *kit_log.Logger, conf *app_conf.Config, greeter *app_helloworld_v1.GreeterServer) *greeterService {
+func NewGreeterService(logger *kit_log.Logger, conf *app_conf.Config, greeter *app_helloworld_v1.GreeterServer) app_helloworld_v1.GreeterHTTPServer {
 	return &greeterService{
 		logger: logger,
 		conf:   conf,
