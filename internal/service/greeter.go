@@ -6,6 +6,7 @@ package service
 
 import (
 	"context"
+	"fmt"
 
 	kit_log "github.com/fsyyft-go/kit/log"
 
@@ -53,5 +54,13 @@ func NewGreeterService(logger kit_log.Logger, conf *app_conf.Config, uc app_biz.
 //   - *app_helloworld_v1.HelloReply：问候响应。
 //   - error：可能发生的错误。
 func (s *greeterService) SayHello(ctx context.Context, in *app_helloworld_v1.HelloRequest) (*app_helloworld_v1.HelloReply, error) {
-	return nil, nil
+	g, err := s.uc.CreateGreeter(ctx, &app_biz.Greeter{
+		Hello: in.Name,
+	})
+	if nil != err {
+		return nil, err
+	}
+	return &app_helloworld_v1.HelloReply{
+		Message: fmt.Sprintf("Hello %s", g.Hello),
+	}, nil
 }
