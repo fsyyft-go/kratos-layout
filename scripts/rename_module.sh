@@ -35,6 +35,7 @@ find . -name "*.go" -type f -exec sed -i '' '/\/\/ 模板：/d' {} \;
 go mod tidy
 go fmt ./...
 
+# TODO proto 相关文件也需要修改。
 
 echo "模块重命名完成！"
 echo "请检查更改并提交到版本控制系统。" 
