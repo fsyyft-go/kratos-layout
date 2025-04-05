@@ -11,20 +11,21 @@
 package web
 
 import (
-	"github.com/fsyyft-go/kratos-layout/internal/conf"
-	"github.com/fsyyft-go/kratos-layout/internal/server"
-	"github.com/fsyyft-go/kratos-layout/internal/service"
+	app_conf "github.com/fsyyft-go/kratos-layout/internal/conf"
+	app_log "github.com/fsyyft-go/kratos-layout/internal/log"
+	app_server "github.com/fsyyft-go/kratos-layout/internal/server"
+	app_service "github.com/fsyyft-go/kratos-layout/internal/service"
 )
 
 // Injectors from wire.go:
 
-func wireWeb(conf2 *conf.Config) (server.WebServer, func(), error) {
-	logLogger, cleanup, err := NewLogger(conf2)
+func wireWeb(conf2 *app_conf.Config) (app_server.WebServer, func(), error) {
+	logger, cleanup, err := app_log.NewLogger(conf2)
 	if err != nil {
 		return nil, nil, err
 	}
-	greeterHTTPServer := service.NewGreeterService(logLogger, conf2)
-	webServer, cleanup2, err := server.NewWebServer(logLogger, conf2, greeterHTTPServer)
+	greeterHTTPServer := app_service.NewGreeterService(logger, conf2)
+	webServer, cleanup2, err := app_server.NewWebServer(logger, conf2, greeterHTTPServer)
 	if err != nil {
 		cleanup()
 		return nil, nil, err
