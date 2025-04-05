@@ -111,7 +111,7 @@ build:
 # 构建 Docker 镜像。
 image:
 	# 构建任务镜像，并设置日期标签和最新标签。
-	docker build --target task -t $(IMAGE_NAME)-task:$(DATE) -t $(IMAGE_NAME)-task:latest .
+	docker build -f docker/Dockerfile --target task -t $(IMAGE_NAME)-task:$(DATE) -t $(IMAGE_NAME)-task:latest .
 
 # 运行 Docker 容器。
 .PHONY: run-task
@@ -124,10 +124,11 @@ run-task:
 		$(IMAGE_NAME)-task
 
 # 清理项目。
+# 注意：如果使用 OrbStack 运行项目，请不要使用此命令，否则会影响 OrbStack 的日志输出。
 .PHONY: clean
 clean:
 	rm -rf bin/*
 	rm -rf cmd/task/logs
-	rm -rf logs/*
-	rm -rf $(LOG_DIR)/*
-	rm -rf $(LOG_DIR)
+	rm -rf logs/container/*.log
+	rm -rf logs/*.log
+	mkdir -p $(LOG_DIR)
