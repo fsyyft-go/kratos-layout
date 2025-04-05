@@ -8,7 +8,17 @@ LOG_DIR=logs
 IMAGE_NAME=fsyyft/kratos-layout
 
 # 获取当前日期，格式为年月日（YYMMDD）。
-DATE=$(shell date +%y%m%d)
+BUILD_DATE=$(shell date +%y%m%d)
+
+# 编译时间。
+BUILD_TIME=$(shell date "+%Y%m%d%H%M%S")
+
+# 获取 git 提交哈希值。
+GIT_COMMIT=$(shell git rev-parse HEAD)
+
+# 获取 GOPATH 和 GOROOT。
+BUILD_GOPATH=$(shell go env GOPATH)
+BUILD_GOROOT=$(shell go env GOROOT)
 
 ## 默认目标，显示帮助信息。
 .PHONY: help
@@ -17,6 +27,7 @@ help:
 	@echo "  make [目标]"
 	@echo ""
 	@echo "目标:"
+	@echo "  clean            清理项目"
 	@echo "  build            构建多平台可执行文件"
 	@echo "  config           生成配置相关的 Protocol Buffers 代码"
 	@echo "  generate         执行代码生成任务"
@@ -110,7 +121,14 @@ build:
 # 构建 Docker 镜像。
 image:
 	# 构建任务镜像，并设置日期标签和最新标签。
-	docker build --target task -t $(IMAGE_NAME)-task:$(DATE) -t $(IMAGE_NAME)-task:latest .
+	docker build \
+		--build-arg GIT_COMMIT=$(GIT_COMMIT) \
+		--build-arg BUILD_TIME=$(BUILD_TIME) \
+		-f docker/Dockerfile \
+		--target task \
+		-t $(IMAGE_NAME)-task:$(BUILD_DATE) \
+		-t $(IMAGE_NAME)-task:latest \
+		.
 
 # 运行 Docker 容器。
 .PHONY: run-task
@@ -121,3 +139,13 @@ run-task:
 	docker run \
 		-v $(PWD)/$(LOG_DIR)/container:/app/logs \
 		$(IMAGE_NAME)-task
+
+# 清理项目。
+# 注意：如果使用 OrbStack 运行项目，请不要使用此命令，否则会影响 OrbStack 的日志输出。
+.PHONY: clean
+clean:
+	rm -rf bin/*
+	rm -rf cmd/task/logs
+	rm -rf logs/container/*.log
+	rm -rf logs/*.log
+	mkdir -p $(LOG_DIR)

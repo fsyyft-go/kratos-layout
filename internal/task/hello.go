@@ -6,8 +6,10 @@ package task
 
 import (
 	"context"
+	"fmt"
 	"time"
 
+	kit_config "github.com/fsyyft-go/kit/config"
 	kit_log "github.com/fsyyft-go/kit/log"
 
 	// 模板：下面这条导入，应用时需要修改。
@@ -51,6 +53,7 @@ func NewHello(logger kit_log.Logger, cfg *app_conf.Config) (Hello, error) {
 // 返回值:
 //   - error: 执行过程中可能发生的错误。
 func (h *hello) Run(ctx context.Context) error {
+	fmt.Print(kit_config.CurrentVersion.Description())
 	ticker := time.NewTicker(time.Minute)
 FOR:
 	for {
