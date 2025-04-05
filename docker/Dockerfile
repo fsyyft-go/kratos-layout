@@ -25,15 +25,17 @@ FROM alpine:3.19 AS task
 # 设置工作目录。
 WORKDIR /app
 
-# 从构建阶段复制可执行文件。
-COPY --from=builder /app/task .
-
 # 复制配置文件。
 COPY configs/config.yaml ./configs/config.yaml
+COPY docker/entrypoint.sh ./entrypoint.sh
 
 # 创建日志目录。
 RUN mkdir -p /app/logs && \
-    chmod 755 /app/logs
+    chmod 755 /app/logs && \
+    chmod +x ./entrypoint.sh
+
+# 从构建阶段复制可执行文件。
+COPY --from=builder /app/task .
 
 # 暴露端口。
 EXPOSE 32788
@@ -42,4 +44,5 @@ EXPOSE 32788
 VOLUME ["/app/logs"]
 
 # 启动应用。
+ENTRYPOINT ["./entrypoint.sh"]
 CMD ["./task", "--config=configs/config.yaml"]
