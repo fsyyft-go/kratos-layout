@@ -17,6 +17,7 @@ help:
 	@echo "  make [目标]"
 	@echo ""
 	@echo "目标:"
+	@echo "  clean            清理项目"
 	@echo "  build            构建多平台可执行文件"
 	@echo "  config           生成配置相关的 Protocol Buffers 代码"
 	@echo "  generate         执行代码生成任务"
@@ -121,3 +122,12 @@ run-task:
 	docker run \
 		-v $(PWD)/$(LOG_DIR)/container:/app/logs \
 		$(IMAGE_NAME)-task
+
+# 清理项目。
+.PHONY: clean
+clean:
+	rm -rf bin/*
+	rm -rf cmd/task/logs
+	rm -rf logs/*
+	rm -rf $(LOG_DIR)/*
+	rm -rf $(LOG_DIR)
