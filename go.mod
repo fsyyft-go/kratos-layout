@@ -6,6 +6,7 @@ require (
 	github.com/envoyproxy/protoc-gen-validate v1.2.1
 	github.com/fsyyft-go/kit v0.0.9
 	github.com/go-kratos/kratos/v2 v2.8.4
+	github.com/golang-jwt/jwt v3.2.2+incompatible
 	github.com/google/wire v0.6.0
 	google.golang.org/genproto/googleapis/api v0.0.0-20250303144028-a0af3efb3deb
 	google.golang.org/grpc v1.71.0
