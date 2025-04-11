@@ -2,6 +2,7 @@
 //
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
+// Package web 提供了 Web 应用程序的入口点和运行时管理，包括配置加载、服务启动和信号处理。
 package web
 
 import (
@@ -15,14 +16,14 @@ import (
 	"github.com/google/wire"
 
 	// 模板：下面这条导入，应用时需要修改。
-	app_conf "github.com/fsyyft-go/kratos-layout/internal/conf"
-	app_log "github.com/fsyyft-go/kratos-layout/internal/log"
+	appconf "github.com/fsyyft-go/kratos-layout/internal/conf"
+	applog "github.com/fsyyft-go/kratos-layout/internal/log"
 )
 
 // ProviderSet 是 wire 的依赖注入提供者集合。
 // 包含了创建应用实例所需的所有依赖。
 var ProviderSet = wire.NewSet(
-	app_log.NewLogger,
+	applog.NewLogger,
 )
 
 // Run 启动并运行任务执行器。
@@ -40,7 +41,7 @@ func Run() {
 	flag.Parse()
 
 	// 从指定路径加载配置文件。
-	cfg, err := app_conf.LoadConfig(configPath)
+	cfg, err := appconf.LoadConfig(configPath)
 	if nil != err {
 		fmt.Printf("加载配置文件失败：%v", err)
 		return

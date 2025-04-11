@@ -11,19 +11,19 @@
 package task
 
 import (
-	app_conf "github.com/fsyyft-go/kratos-layout/internal/conf"
-	app_log "github.com/fsyyft-go/kratos-layout/internal/log"
-	app_task "github.com/fsyyft-go/kratos-layout/internal/task"
+	appconf "github.com/fsyyft-go/kratos-layout/internal/conf"
+	applog "github.com/fsyyft-go/kratos-layout/internal/log"
+	apptask "github.com/fsyyft-go/kratos-layout/internal/task"
 )
 
 // Injectors from wire.go:
 
-func wireTask(cfg *app_conf.Config) (app_task.Hello, func(), error) {
-	logger, cleanup, err := app_log.NewLogger(cfg)
+func wireTask(cfg *appconf.Config) (apptask.Hello, func(), error) {
+	logger, cleanup, err := applog.NewLogger(cfg)
 	if err != nil {
 		return nil, nil, err
 	}
-	hello, err := app_task.NewHello(logger, cfg)
+	hello, err := apptask.NewHello(logger, cfg)
 	if err != nil {
 		cleanup()
 		return nil, nil, err
