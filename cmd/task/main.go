@@ -7,11 +7,11 @@
 package main
 
 import (
-	app_task "github.com/fsyyft-go/kratos-layout/internal/app/task"
+	apptask "github.com/fsyyft-go/kratos-layout/internal/app/task"
 )
 
 func main() {
 	// 应用程序入口。
 	// 测试过在某些情况下，使用 wire 生成代码时，会报错，可能是因为这时 main 包的原因，所以这里只包含入口。
-	app_task.Run()
+	apptask.Run()
 }

@@ -12,13 +12,13 @@ import (
 	"github.com/go-kratos/kratos/v2/middleware/recovery"
 	"github.com/go-kratos/kratos/v2/transport/http"
 
-	kit_kratos_middleware_validate "github.com/fsyyft-go/kit/kratos/middleware/validate"
-	kit_kratos_transport_http "github.com/fsyyft-go/kit/kratos/transport/http"
-	kit_log "github.com/fsyyft-go/kit/log"
-	kit_runtime "github.com/fsyyft-go/kit/runtime"
+	kitkratosmiddlewarevalidate "github.com/fsyyft-go/kit/kratos/middleware/validate"
+	kitkratostransporthttp "github.com/fsyyft-go/kit/kratos/transport/http"
+	kitlog "github.com/fsyyft-go/kit/log"
+	kitruntime "github.com/fsyyft-go/kit/runtime"
 
-	app_helloworld_v1 "github.com/fsyyft-go/kratos-layout/api/helloworld/v1"
-	app_conf "github.com/fsyyft-go/kratos-layout/internal/conf"
+	apphelloworldv1 "github.com/fsyyft-go/kratos-layout/api/helloworld/v1"
+	appconf "github.com/fsyyft-go/kratos-layout/internal/conf"
 )
 
 var (
@@ -28,16 +28,16 @@ var (
 type (
 	// WebServer 定义了 Web 服务器的接口。
 	WebServer interface {
-		kit_runtime.Runner   // 继承 Runner 接口，提供 Start 和 Stop 方法。
+		kitruntime.Runner    // 继承 Runner 接口，提供 Start 和 Stop 方法。
 		Engine() *gin.Engine // 返回 Gin 引擎实例，允许外部访问和配置。
 	}
 
 	// webServer 实现了 WebServer 接口，提供 Web 服务器功能。
 	webServer struct {
 		// 日志记录器。
-		logger kit_log.Logger
+		logger kitlog.Logger
 		// 应用配置。
-		conf *app_conf.Config
+		conf *appconf.Config
 		// Gin 引擎，用于处理 HTTP 请求。
 		engine *gin.Engine
 	}
@@ -54,8 +54,8 @@ type (
 //   - WebServer：配置好的 Web 服务器实例。
 //   - func()：清理函数。
 //   - error：初始化过程中可能发生的错误。
-func NewWebServer(logger kit_log.Logger, conf *app_conf.Config,
-	greeter app_helloworld_v1.GreeterHTTPServer,
+func NewWebServer(logger kitlog.Logger, conf *appconf.Config,
+	greeter apphelloworldv1.GreeterHTTPServer,
 ) (WebServer, func(), error) {
 	var err error
 
@@ -70,16 +70,16 @@ func NewWebServer(logger kit_log.Logger, conf *app_conf.Config,
 	server := http.NewServer(
 		http.Middleware(
 			recovery.Recovery(),
-			kit_kratos_middleware_validate.Validator(kit_kratos_middleware_validate.WithValidateCallback(webServer.validateCallback)),
+			kitkratosmiddlewarevalidate.Validator(kitkratosmiddlewarevalidate.WithValidateCallback(webServer.validateCallback)),
 		),
 	)
 
-	app_helloworld_v1.RegisterGreeterHTTPServer(server, greeter)
+	apphelloworldv1.RegisterGreeterHTTPServer(server, greeter)
 
 	// 初始化 Gin 引擎，并配置默认中间件。
 	webServer.engine = gin.Default()
 	// 将 Kratos HTTP 服务解析到 Gin 引擎中。
-	kit_kratos_transport_http.Parse(server, webServer.engine)
+	kitkratostransporthttp.Parse(server, webServer.engine)
 
 	var cleanup = func() {}
 

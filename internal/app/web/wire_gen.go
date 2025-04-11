@@ -11,30 +11,30 @@
 package web
 
 import (
-	app_biz "github.com/fsyyft-go/kratos-layout/internal/biz"
-	app_conf "github.com/fsyyft-go/kratos-layout/internal/conf"
-	app_data "github.com/fsyyft-go/kratos-layout/internal/data"
-	app_log "github.com/fsyyft-go/kratos-layout/internal/log"
-	app_server "github.com/fsyyft-go/kratos-layout/internal/server"
-	app_service "github.com/fsyyft-go/kratos-layout/internal/service"
+	appbiz "github.com/fsyyft-go/kratos-layout/internal/biz"
+	appconf "github.com/fsyyft-go/kratos-layout/internal/conf"
+	appdata "github.com/fsyyft-go/kratos-layout/internal/data"
+	applog "github.com/fsyyft-go/kratos-layout/internal/log"
+	appserver "github.com/fsyyft-go/kratos-layout/internal/server"
+	appservice "github.com/fsyyft-go/kratos-layout/internal/service"
 )
 
 // Injectors from wire.go:
 
-func wireWeb(conf2 *app_conf.Config) (app_server.WebServer, func(), error) {
-	logger, cleanup, err := app_log.NewLogger(conf2)
+func wireWeb(conf2 *appconf.Config) (appserver.WebServer, func(), error) {
+	logger, cleanup, err := applog.NewLogger(conf2)
 	if err != nil {
 		return nil, nil, err
 	}
-	dataData, cleanup2, err := app_data.NewData(logger, conf2)
+	dataData, cleanup2, err := appdata.NewData(logger, conf2)
 	if err != nil {
 		cleanup()
 		return nil, nil, err
 	}
-	greeterRepo := app_data.NewGreeterRepo(logger, conf2, dataData)
-	greeterUsecase := app_biz.NewGreeterUsecase(logger, conf2, greeterRepo)
-	greeterHTTPServer := app_service.NewGreeterService(logger, conf2, greeterUsecase)
-	webServer, cleanup3, err := app_server.NewWebServer(logger, conf2, greeterHTTPServer)
+	greeterRepo := appdata.NewGreeterRepo(logger, conf2, dataData)
+	greeterUsecase := appbiz.NewGreeterUsecase(logger, conf2, greeterRepo)
+	greeterHTTPServer := appservice.NewGreeterService(logger, conf2, greeterUsecase)
+	webServer, cleanup3, err := appserver.NewWebServer(logger, conf2, greeterHTTPServer)
 	if err != nil {
 		cleanup2()
 		cleanup()
