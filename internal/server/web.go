@@ -13,12 +13,12 @@ import (
 	"github.com/go-kratos/kratos/v2/transport/http"
 
 	kit_kratos_middleware_validate "github.com/fsyyft-go/kit/kratos/middleware/validate"
+	kit_kratos_transport_http "github.com/fsyyft-go/kit/kratos/transport/http"
 	kit_log "github.com/fsyyft-go/kit/log"
 	kit_runtime "github.com/fsyyft-go/kit/runtime"
 
 	app_helloworld_v1 "github.com/fsyyft-go/kratos-layout/api/helloworld/v1"
 	app_conf "github.com/fsyyft-go/kratos-layout/internal/conf"
-	kit_kratos_transport_http "github.com/fsyyft-go/kratos-layout/pkg/kratos/transport/http"
 )
 
 var (
