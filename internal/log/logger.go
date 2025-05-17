@@ -10,15 +10,15 @@ import (
 	"strings"
 	"sync"
 
-	kit_log "github.com/fsyyft-go/kit/log"
+	kitlog "github.com/fsyyft-go/kit/log"
 
 	// 模板：下面这条导入，应用时需要修改。
-	app_conf "github.com/fsyyft-go/kratos-layout/internal/conf"
+	appconf "github.com/fsyyft-go/kratos-layout/internal/conf"
 )
 
 var (
 	// logger 是全局共享的日志记录器实例。
-	logger kit_log.Logger
+	logger kitlog.Logger
 	// loggerLocker 是用于保护 logger 变量的读写锁，确保并发安全。
 	loggerLocker sync.RWMutex = sync.RWMutex{}
 )
@@ -27,13 +27,13 @@ var (
 // 该函数使用单例模式确保只创建一个全局日志记录器。
 //
 // 参数：
-//   - cfg *conf.Config：应用程序配置对象，包含日志相关设置。
+//   - cfg *appconf.Config：应用程序配置对象，包含日志相关设置。
 //
 // 返回值：
-//   - log.Logger：初始化后的日志记录器实例。
+//   - kitlog.Logger：初始化后的日志记录器实例。
 //   - func()：清理函数，用于在初始化失败时进行资源释放。
 //   - error：初始化过程中可能发生的错误。
-func NewLogger(cfg *app_conf.Config) (kit_log.Logger, func(), error) {
+func NewLogger(cfg *appconf.Config) (kitlog.Logger, func(), error) {
 	var err error
 
 	// 检查日志记录器是否已经初始化
@@ -45,20 +45,20 @@ func NewLogger(cfg *app_conf.Config) (kit_log.Logger, func(), error) {
 		// 双重检查锁定模式，确保日志记录器仅初始化一次。
 		if nil == logger {
 			// 使用配置创建新的日志记录器。
-			if l, errNew := kit_log.NewLogger(
-				kit_log.WithLogType(kit_log.LogType(cfg.Log.Type)),
-				kit_log.WithOutput(cfg.Log.Output),
-			); nil != err {
+			if l, errNew := kitlog.NewLogger(
+				kitlog.WithLogType(kitlog.LogType(cfg.Log.Type)),
+				kitlog.WithOutput(cfg.Log.Output),
+			); nil != errNew {
 				err = errNew
 			} else {
 				// 设置日志级别。
-				if level, err := kit_log.ParseLevel(cfg.Log.Level); nil != err {
-					l.WithField("error", err).Error("解析日志级别失败")
+				if level, errParse := kitlog.ParseLevel(cfg.Log.Level); nil != errParse {
+					l.WithField("error", errParse).Error("解析日志级别失败")
 				} else {
 					l.SetLevel(level)
 					// 获取 hostname 的短形式，例如 a.b.com 则是只返回 a。
-					hostname, err := os.Hostname()
-					if nil != err {
+					hostname, errHostname := os.Hostname()
+					if nil != errHostname {
 						hostname = "unknown"
 					} else {
 						hostname = strings.Split(hostname, ".")[0]
