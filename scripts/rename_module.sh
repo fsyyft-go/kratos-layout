@@ -49,5 +49,8 @@ make config
 
 echo "请检查 api 和 config 是否生成成功。"
 
+mkdir -p .vscode
+cp scripts/launch.example.json .vscode/launch.json
+
 echo "请检查更改并提交到版本控制系统。"
 echo "你可以使用 make lint 和 make build 来尝试一下编译是否通过。"
