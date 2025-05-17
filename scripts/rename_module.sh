@@ -35,8 +35,19 @@ find . -name "*.go" -type f -exec sed -i '' '/\/\/ 模板：/d' {} \;
 go mod tidy
 go fmt ./...
 
-# TODO proto 相关文件也需要修改。
+CURRENT_MODULE_NAME_SINGLE=$(echo $CURRENT_MODULE_NAME | awk -F '/' '{print $NF}')
+NEW_MODULE_NAME_SINGLE=$(echo $NEW_MODULE_NAME | awk -F '/' '{print $NF}')
+sed -i '' "s|$CURRENT_MODULE_NAME_SINGLE|$NEW_MODULE_NAME_SINGLE|g" Makefile
+sed -i '' "s|$CURRENT_MODULE_NAME_SINGLE|$NEW_MODULE_NAME_SINGLE|g" OWNERS
+sed -i '' "s|$CURRENT_MODULE_NAME_SINGLE|$NEW_MODULE_NAME_SINGLE|g" internal/conf/config.proto
+find api/helloworld/v1/ -name "*.proto" -type f -exec sed -i '' "s|$CURRENT_MODULE_NAME_SINGLE|$NEW_MODULE_NAME_SINGLE|g" {} \;
 
 echo "模块重命名完成！"
-echo "请检查更改并提交到版本控制系统。" 
+
+make api
+make config
+
+echo "请检查 api 和 config 是否生成成功。"
+
+echo "请检查更改并提交到版本控制系统。"
 echo "你可以使用 make lint 和 make build 来尝试一下编译是否通过。"
