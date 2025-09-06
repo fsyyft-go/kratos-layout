@@ -18,7 +18,7 @@ import (
 	kitruntime "github.com/fsyyft-go/kit/runtime"
 
 	apphelloworldv1 "github.com/fsyyft-go/kratos-layout/api/helloworld/v1"
-	appconf "github.com/fsyyft-go/kratos-layout/internal/conf"
+	appconf "github.com/fsyyft-go/kratos-layout/internal/pkg/conf"
 )
 
 var (

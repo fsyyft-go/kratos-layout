@@ -11,8 +11,8 @@
 package task
 
 import (
-	appconf "github.com/fsyyft-go/kratos-layout/internal/conf"
-	applog "github.com/fsyyft-go/kratos-layout/internal/log"
+	appconf "github.com/fsyyft-go/kratos-layout/internal/pkg/conf"
+	applog "github.com/fsyyft-go/kratos-layout/internal/pkg/log"
 	apptask "github.com/fsyyft-go/kratos-layout/internal/task"
 )
 

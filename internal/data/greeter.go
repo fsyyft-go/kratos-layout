@@ -7,18 +7,18 @@ package data
 import (
 	"context"
 
-	kit_log "github.com/fsyyft-go/kit/log"
+	kitlog "github.com/fsyyft-go/kit/log"
 
-	app_biz "github.com/fsyyft-go/kratos-layout/internal/biz"
-	app_conf "github.com/fsyyft-go/kratos-layout/internal/conf"
+	appbiz "github.com/fsyyft-go/kratos-layout/internal/biz"
+	appconf "github.com/fsyyft-go/kratos-layout/internal/pkg/conf"
 )
 
-// greeterRepo 实现了 app_biz.GreeterRepo 接口，提供 Greeter 相关的数据访问操作。
+// greeterRepo 实现了 appbiz.GreeterRepo 接口，提供 Greeter 相关的数据访问操作。
 type greeterRepo struct {
 	// log 用于记录日志信息。
-	log kit_log.Logger
+	log kitlog.Logger
 	// conf 存储应用配置信息。
-	conf *app_conf.Config
+	conf *appconf.Config
 	// data 提供数据层公共依赖。
 	data Data
 }
@@ -32,7 +32,7 @@ type greeterRepo struct {
 //
 // 返回：
 //   - GreeterRepo 接口实现。
-func NewGreeterRepo(logger kit_log.Logger, conf *app_conf.Config, data Data) app_biz.GreeterRepo {
+func NewGreeterRepo(logger kitlog.Logger, conf *appconf.Config, data Data) appbiz.GreeterRepo {
 	return &greeterRepo{
 		log:  logger,
 		conf: conf,
@@ -49,7 +49,7 @@ func NewGreeterRepo(logger kit_log.Logger, conf *app_conf.Config, data Data) app
 // 返回：
 //   - 保存后的 Greeter 实体。
 //   - 可能发生的错误。
-func (r *greeterRepo) Save(_ context.Context, g *app_biz.Greeter) (*app_biz.Greeter, error) {
+func (r *greeterRepo) Save(_ context.Context, g *appbiz.Greeter) (*appbiz.Greeter, error) {
 	return g, nil
 }
 
@@ -62,7 +62,7 @@ func (r *greeterRepo) Save(_ context.Context, g *app_biz.Greeter) (*app_biz.Gree
 // 返回：
 //   - 更新后的 Greeter 实体。
 //   - 可能发生的错误。
-func (r *greeterRepo) Update(_ context.Context, g *app_biz.Greeter) (*app_biz.Greeter, error) {
+func (r *greeterRepo) Update(_ context.Context, g *appbiz.Greeter) (*appbiz.Greeter, error) {
 	return g, nil
 }
 
@@ -75,7 +75,7 @@ func (r *greeterRepo) Update(_ context.Context, g *app_biz.Greeter) (*app_biz.Gr
 // 返回：
 //   - 查找到的 Greeter 实体。
 //   - 可能发生的错误。
-func (r *greeterRepo) FindByID(context.Context, int64) (*app_biz.Greeter, error) {
+func (r *greeterRepo) FindByID(context.Context, int64) (*appbiz.Greeter, error) {
 	return nil, nil
 }
 
@@ -88,7 +88,7 @@ func (r *greeterRepo) FindByID(context.Context, int64) (*app_biz.Greeter, error)
 // 返回：
 //   - Greeter 实体列表。
 //   - 可能发生的错误。
-func (r *greeterRepo) ListByHello(context.Context, string) ([]*app_biz.Greeter, error) {
+func (r *greeterRepo) ListByHello(context.Context, string) ([]*appbiz.Greeter, error) {
 	return nil, nil
 }
 
@@ -100,6 +100,6 @@ func (r *greeterRepo) ListByHello(context.Context, string) ([]*app_biz.Greeter, 
 // 返回：
 //   - 所有 Greeter 实体列表。
 //   - 可能发生的错误。
-func (r *greeterRepo) ListAll(context.Context) ([]*app_biz.Greeter, error) {
+func (r *greeterRepo) ListAll(context.Context) ([]*appbiz.Greeter, error) {
 	return nil, nil
 }

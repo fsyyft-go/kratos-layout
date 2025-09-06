@@ -8,9 +8,9 @@ package data
 import (
 	"github.com/google/wire"
 
-	kit_log "github.com/fsyyft-go/kit/log"
+	kitlog "github.com/fsyyft-go/kit/log"
 
-	app_conf "github.com/fsyyft-go/kratos-layout/internal/conf"
+	appconf "github.com/fsyyft-go/kratos-layout/internal/pkg/conf"
 )
 
 var (
@@ -29,9 +29,9 @@ type (
 	// data 实现了 Data 接口。
 	data struct {
 		// logger 用于记录日志信息。
-		logger kit_log.Logger
+		logger kitlog.Logger
 		// conf 存储应用配置信息。
-		conf *app_conf.Config
+		conf *appconf.Config
 	}
 )
 
@@ -45,7 +45,7 @@ type (
 //   - Data：数据层接口实现。
 //   - func()：清理函数，用于资源释放。
 //   - error：可能的错误信息。
-func NewData(logger kit_log.Logger, conf *app_conf.Config) (Data, func(), error) {
+func NewData(logger kitlog.Logger, conf *appconf.Config) (Data, func(), error) {
 	cleanup := func() {
 		logger.Info("closing the data resources")
 	}
