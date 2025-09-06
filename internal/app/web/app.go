@@ -16,8 +16,8 @@ import (
 	"github.com/google/wire"
 
 	// 模板：下面这条导入，应用时需要修改。
-	appconf "github.com/fsyyft-go/kratos-layout/internal/conf"
-	applog "github.com/fsyyft-go/kratos-layout/internal/log"
+	appconf "github.com/fsyyft-go/kratos-layout/internal/pkg/conf"
+	applog "github.com/fsyyft-go/kratos-layout/internal/pkg/log"
 )
 
 // ProviderSet 是 wire 的依赖注入提供者集合。

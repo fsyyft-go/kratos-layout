@@ -12,8 +12,8 @@ import (
 
 	// 模板：下面这条导入，应用时需要修改。
 	appbiz "github.com/fsyyft-go/kratos-layout/internal/biz"
-	appconf "github.com/fsyyft-go/kratos-layout/internal/conf"
 	appdata "github.com/fsyyft-go/kratos-layout/internal/data"
+	appconf "github.com/fsyyft-go/kratos-layout/internal/pkg/conf"
 	appserver "github.com/fsyyft-go/kratos-layout/internal/server"
 	appservice "github.com/fsyyft-go/kratos-layout/internal/service"
 )

@@ -12,7 +12,7 @@ import (
 	kitlog "github.com/fsyyft-go/kit/log"
 
 	apphelloworldv1 "github.com/fsyyft-go/kratos-layout/api/helloworld/v1"
-	appconf "github.com/fsyyft-go/kratos-layout/internal/conf"
+	appconf "github.com/fsyyft-go/kratos-layout/internal/pkg/conf"
 )
 
 // 定义系统错误码。

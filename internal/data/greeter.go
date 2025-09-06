@@ -10,7 +10,7 @@ import (
 	kitlog "github.com/fsyyft-go/kit/log"
 
 	appbiz "github.com/fsyyft-go/kratos-layout/internal/biz"
-	appconf "github.com/fsyyft-go/kratos-layout/internal/conf"
+	appconf "github.com/fsyyft-go/kratos-layout/internal/pkg/conf"
 )
 
 // greeterRepo 实现了 appbiz.GreeterRepo 接口，提供 Greeter 相关的数据访问操作。
