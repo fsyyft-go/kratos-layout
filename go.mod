@@ -1,11 +1,12 @@
 module github.com/fsyyft-go/kratos-layout
 
-go 1.24
+go 1.25
 
 require (
 	github.com/envoyproxy/protoc-gen-validate v1.2.1
-	github.com/fsyyft-go/kit v0.0.13
+	github.com/fsyyft-go/kit v0.0.14
 	github.com/go-kratos/kratos/v2 v2.8.4
+	github.com/golang-jwt/jwt v3.2.2+incompatible
 	github.com/google/wire v0.6.0
 	google.golang.org/genproto/googleapis/api v0.0.0-20250519155744-55703ea1f237
 	google.golang.org/grpc v1.71.0

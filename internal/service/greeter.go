@@ -8,22 +8,22 @@ import (
 	"context"
 	"fmt"
 
-	kit_log "github.com/fsyyft-go/kit/log"
+	kitlog "github.com/fsyyft-go/kit/log"
 
-	app_helloworld_v1 "github.com/fsyyft-go/kratos-layout/api/helloworld/v1"
-	app_biz "github.com/fsyyft-go/kratos-layout/internal/biz"
-	app_conf "github.com/fsyyft-go/kratos-layout/internal/conf"
+	apphelloworldv1 "github.com/fsyyft-go/kratos-layout/api/helloworld/v1"
+	appbiz "github.com/fsyyft-go/kratos-layout/internal/biz"
+	appconf "github.com/fsyyft-go/kratos-layout/internal/conf"
 )
 
 type (
 	// greeterService 实现了 GreeterHTTPServer 接口，提供问候服务。
 	greeterService struct {
 		// logger 用于服务日志记录。
-		logger kit_log.Logger
+		logger kitlog.Logger
 		// conf 存储服务配置信息。
-		conf *app_conf.Config
+		conf *appconf.Config
 		// uc 用于处理问候相关的业务逻辑。
-		uc app_biz.GreeterUsecase
+		uc appbiz.GreeterUsecase
 	}
 )
 
@@ -35,8 +35,8 @@ type (
 //   - uc：问候用例的业务逻辑实现。
 //
 // 返回：
-//   - app_helloworld_v1.GreeterHTTPServer：问候服务的实现实例。
-func NewGreeterService(logger kit_log.Logger, conf *app_conf.Config, uc app_biz.GreeterUsecase) app_helloworld_v1.GreeterHTTPServer {
+//   - apphelloworldv1.GreeterHTTPServer：问候服务的实现实例。
+func NewGreeterService(logger kitlog.Logger, conf *appconf.Config, uc appbiz.GreeterUsecase) apphelloworldv1.GreeterHTTPServer {
 	return &greeterService{
 		logger: logger,
 		conf:   conf,
@@ -51,16 +51,16 @@ func NewGreeterService(logger kit_log.Logger, conf *app_conf.Config, uc app_biz.
 //   - in：包含问候请求的参数。
 //
 // 返回：
-//   - *app_helloworld_v1.HelloReply：问候响应。
+//   - *apphelloworldv1.HelloReply：问候响应。
 //   - error：可能发生的错误。
-func (s *greeterService) SayHello(ctx context.Context, in *app_helloworld_v1.HelloRequest) (*app_helloworld_v1.HelloReply, error) {
-	g, err := s.uc.CreateGreeter(ctx, &app_biz.Greeter{
+func (s *greeterService) SayHello(ctx context.Context, in *apphelloworldv1.HelloRequest) (*apphelloworldv1.HelloReply, error) {
+	g, err := s.uc.CreateGreeter(ctx, &appbiz.Greeter{
 		Hello: in.Name,
 	})
 	if nil != err {
 		return nil, err
 	}
-	return &app_helloworld_v1.HelloReply{
+	return &apphelloworldv1.HelloReply{
 		Message: fmt.Sprintf("Hello %s", g.Hello),
 	}, nil
 }
