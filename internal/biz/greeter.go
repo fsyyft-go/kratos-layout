@@ -9,16 +9,16 @@ import (
 
 	"github.com/go-kratos/kratos/v2/errors"
 
-	kit_log "github.com/fsyyft-go/kit/log"
+	kitlog "github.com/fsyyft-go/kit/log"
 
-	app_helloworld_v1 "github.com/fsyyft-go/kratos-layout/api/helloworld/v1"
-	app_conf "github.com/fsyyft-go/kratos-layout/internal/conf"
+	apphelloworldv1 "github.com/fsyyft-go/kratos-layout/api/helloworld/v1"
+	appconf "github.com/fsyyft-go/kratos-layout/internal/conf"
 )
 
 // 定义系统错误码。
 var (
 	// ErrUserNotFound 表示用户未找到的错误，使用 NotFound 错误类型，错误原因为 USER_NOT_FOUND。
-	ErrUserNotFound = errors.NotFound(app_helloworld_v1.ErrorReason_USER_NOT_FOUND.String(), "user not found")
+	ErrUserNotFound = errors.NotFound(apphelloworldv1.ErrorReason_USER_NOT_FOUND.String(), "user not found")
 )
 
 // 定义 Greeter 相关的类型。
@@ -54,9 +54,9 @@ type (
 	// greeterUsecase 实现了 GreeterUsecase 接口。
 	greeterUsecase struct {
 		// logger 用于日志记录。
-		logger kit_log.Logger
+		logger kitlog.Logger
 		// conf 存储应用配置信息。
-		conf *app_conf.Config
+		conf *appconf.Config
 		// repo 提供数据访问能力。
 		repo GreeterRepo
 	}
@@ -70,7 +70,7 @@ type (
 //
 // 返回：
 //   - GreeterUsecase 接口实现
-func NewGreeterUsecase(logger kit_log.Logger, conf *app_conf.Config, repo GreeterRepo) GreeterUsecase {
+func NewGreeterUsecase(logger kitlog.Logger, conf *appconf.Config, repo GreeterRepo) GreeterUsecase {
 	return &greeterUsecase{
 		logger: logger,
 		conf:   conf,
