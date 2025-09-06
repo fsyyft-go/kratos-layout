@@ -26,6 +26,8 @@ env:
   GO_VERSION: '1.25'
   # 应用名称。
   APP_NAME: kratos-layout
+  # 软件版本。
+  APP_VERSION: ${{ github.event.release.name }}
 jobs:
   # 定义构建任务。
   build:
@@ -76,14 +78,14 @@ jobs:
               # 根据平台选择压缩格式。
               if [[ $platform == windows* ]]; then
                 # Windows 使用 zip 格式
-                archive_name="../../${{ env.APP_NAME }}-${platform/_/-}.zip"
+                archive_name="../../${{ env.APP_NAME }}-${platform/_/-}-${{ env.APP_VERSION }}.zip"
                 zip -9 -T -r "$archive_name" .
-                echo "Created: ${{ env.APP_NAME }}-${platform/_/-}.zip"
+                echo "Created: ${{ env.APP_NAME }}-${platform/_/-}-${{ env.APP_VERSION }}.zip"
               else
                 # Linux 和 macOS 使用 tar.gz 格式
-                archive_name="../../${{ env.APP_NAME }}-${platform/_/-}.tar.gz"
+                archive_name="../../${{ env.APP_NAME }}-${platform/_/-}-${{ env.APP_VERSION }}.tar.gz"
                 tar -czf "$archive_name" .
-                echo "Created: ${{ env.APP_NAME }}-${platform/_/-}.tar.gz"
+                echo "Created: ${{ env.APP_NAME }}-${platform/_/-}-${{ env.APP_VERSION }}.tar.gz"
               fi
               cd ../..
             else
@@ -108,14 +110,14 @@ jobs:
         run: |
           if ls *.zip *.tar.gz 1> /dev/null 2>&1; then
             echo "Generating SHA256 checksums..."
-            sha256sum *.zip *.tar.gz | tee ${{ env.APP_NAME }}.sha256
+            sha256sum *.zip *.tar.gz | tee ${{ env.APP_NAME }}-${{ env.APP_VERSION }}.sha256
 
             echo "Generating MD5 checksums..."
-            md5sum *.zip *.tar.gz | tee ${{ env.APP_NAME }}.md5
+            md5sum *.zip *.tar.gz | tee ${{ env.APP_NAME }}-${{ env.APP_VERSION }}.md5
 
             echo "Generated checksums:"
-            cat ${{ env.APP_NAME }}.sha256
-            cat ${{ env.APP_NAME }}.md5
+            cat ${{ env.APP_NAME }}-${{ env.APP_VERSION }}.sha256
+            cat ${{ env.APP_NAME }}-${{ env.APP_VERSION }}.md5
           else
             echo "No archive files found"
             exit 1
@@ -125,7 +127,7 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           files: |
-            ${{ env.APP_NAME }}.sha256
-            ${{ env.APP_NAME }}.md5
+            ${{ env.APP_NAME }}-${{ env.APP_VERSION }}.sha256
+            ${{ env.APP_NAME }}-${{ env.APP_VERSION }}.md5
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
