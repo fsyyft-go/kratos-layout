@@ -114,10 +114,6 @@ jobs:
 
             echo "Generating MD5 checksums..."
             md5sum *.zip *.tar.gz | tee ${{ env.APP_NAME }}-${{ env.APP_VERSION }}.md5
-
-            echo "Generated checksums:"
-            cat ${{ env.APP_NAME }}-${{ env.APP_VERSION }}.sha256
-            cat ${{ env.APP_NAME }}-${{ env.APP_VERSION }}.md5
           else
             echo "No archive files found"
             exit 1
