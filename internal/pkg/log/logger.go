@@ -13,7 +13,7 @@ import (
 	kitlog "github.com/fsyyft-go/kit/log"
 
 	// 模板：下面这条导入，应用时需要修改。
-	appconf "github.com/fsyyft-go/kratos-layout/internal/conf"
+	appconf "github.com/fsyyft-go/kratos-layout/internal/pkg/conf"
 )
 
 var (

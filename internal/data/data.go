@@ -10,7 +10,7 @@ import (
 
 	kitlog "github.com/fsyyft-go/kit/log"
 
-	appconf "github.com/fsyyft-go/kratos-layout/internal/conf"
+	appconf "github.com/fsyyft-go/kratos-layout/internal/pkg/conf"
 )
 
 var (

@@ -12,9 +12,9 @@ package web
 
 import (
 	appbiz "github.com/fsyyft-go/kratos-layout/internal/biz"
-	appconf "github.com/fsyyft-go/kratos-layout/internal/conf"
 	appdata "github.com/fsyyft-go/kratos-layout/internal/data"
-	applog "github.com/fsyyft-go/kratos-layout/internal/log"
+	appconf "github.com/fsyyft-go/kratos-layout/internal/pkg/conf"
+	applog "github.com/fsyyft-go/kratos-layout/internal/pkg/log"
 	appserver "github.com/fsyyft-go/kratos-layout/internal/server"
 	appservice "github.com/fsyyft-go/kratos-layout/internal/service"
 )

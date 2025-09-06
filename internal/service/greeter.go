@@ -12,7 +12,7 @@ import (
 
 	apphelloworldv1 "github.com/fsyyft-go/kratos-layout/api/helloworld/v1"
 	appbiz "github.com/fsyyft-go/kratos-layout/internal/biz"
-	appconf "github.com/fsyyft-go/kratos-layout/internal/conf"
+	appconf "github.com/fsyyft-go/kratos-layout/internal/pkg/conf"
 )
 
 type (
