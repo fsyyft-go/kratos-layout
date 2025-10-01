@@ -6,11 +6,12 @@ package server
 
 import (
 	"context"
+	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-kratos/kratos/v2/errors"
 	"github.com/go-kratos/kratos/v2/middleware/recovery"
-	"github.com/go-kratos/kratos/v2/transport/http"
+	kratoshttp "github.com/go-kratos/kratos/v2/transport/http"
 
 	kitkratosmiddlewarevalidate "github.com/fsyyft-go/kit/kratos/middleware/validate"
 	kitkratostransporthttp "github.com/fsyyft-go/kit/kratos/transport/http"
@@ -39,7 +40,8 @@ type (
 		// 应用配置。
 		conf *appconf.Config
 		// Gin 引擎，用于处理 HTTP 请求。
-		engine *gin.Engine
+		engine     *gin.Engine
+		httpServer *http.Server
 	}
 )
 
@@ -67,8 +69,8 @@ func NewWebServer(logger kitlog.Logger, conf *appconf.Config,
 		conf:   conf,
 	}
 
-	server := http.NewServer(
-		http.Middleware(
+	server := kratoshttp.NewServer(
+		kratoshttp.Middleware(
 			recovery.Recovery(),
 			kitkratosmiddlewarevalidate.Validator(kitkratosmiddlewarevalidate.WithValidateCallback(webServer.validateCallback)),
 		),
@@ -95,8 +97,11 @@ func NewWebServer(logger kitlog.Logger, conf *appconf.Config,
 // 返回值：
 //   - error：启动过程中可能发生的错误。
 func (s *webServer) Start(_ context.Context) error {
-	// 使用 Gin 引擎在配置的端口上启动 HTTP 服务。
-	return s.engine.Run(s.conf.GetServer().GetHttp().GetAddr())
+	s.httpServer = &http.Server{
+		Addr:    s.conf.GetServer().GetHttp().GetAddr(),
+		Handler: s.engine,
+	}
+	return s.httpServer.ListenAndServe()
 }
 
 // Stop 实现停止 Web 服务器的功能。
@@ -107,7 +112,10 @@ func (s *webServer) Start(_ context.Context) error {
 // 返回值：
 //   - error：停止过程中可能发生的错误。
 func (s *webServer) Stop(_ context.Context) error {
-	panic("unimplemented")
+	if nil != s.httpServer {
+		return s.httpServer.Close()
+	}
+	return nil
 }
 
 // Engine 返回 Gin 引擎实例。

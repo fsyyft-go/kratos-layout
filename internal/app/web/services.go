@@ -21,20 +21,31 @@ const (
 	serviceDescription = "Kratos Layout Web HTTP服务，基于Go Kratos框架"
 )
 
-// serviceManager 管理系统服务的安装、卸载等操作
+// serviceManager 管理系统服务的安装、卸载、状态查询等操作。
+//
+// 该结构体封装了 kardianos/service 的 service.Service，
+// 提供跨平台的服务管理能力，支持 Linux(systemd)、macOS(launchd)、Windows(Service)。
 type serviceManager struct {
 	configPath string
 	service    service.Service
 }
 
-// noopProgram 实现 service.Interface，但不直接启动业务；
-// 真正业务逻辑只在前台 `runForeground` 中运行。
+// noopProgram 实现 service.Interface，但不直接启动业务。
+//
+// 该类型用于注册系统服务时占位，所有业务逻辑仅在前台 runForeground 启动。
 type noopProgram struct{}
 
 func (n *noopProgram) Start(s service.Service) error { return nil }
 func (n *noopProgram) Stop(s service.Service) error  { return nil }
 
-// NewServiceManager 创建服务管理器
+// NewServiceManager 创建服务管理器。
+//
+// 参数：
+//   - configPath：配置文件路径。
+//
+// 返回：
+//   - *serviceManager：服务管理器实例。
+//   - error：初始化过程中可能发生的错误。
 func NewServiceManager(configPath string) (*serviceManager, error) {
 	// 获取配置文件的绝对路径。
 	absConfigPath, err := filepath.Abs(configPath)
@@ -85,7 +96,13 @@ func NewServiceManager(configPath string) (*serviceManager, error) {
 	}, nil
 }
 
-// Install 安装系统服务
+// Install 安装系统服务。
+//
+// 检查服务是否已安装，未安装则注册为系统服务。
+// 安装成功后输出启动/状态命令提示。
+//
+// 返回：
+//   - error：安装过程中可能发生的错误。
 func (sm *serviceManager) Install() error {
 	// 检查服务是否已经安装
 	status, err := sm.service.Status()
@@ -126,7 +143,11 @@ func (sm *serviceManager) Install() error {
 	return nil
 }
 
-// Uninstall 卸载系统服务
+// Uninstall 卸载系统服务。
+//
+// 若服务正在运行则先尝试停止，再卸载服务。
+// 返回：
+//   - error：卸载过程中可能发生的错误。
 func (sm *serviceManager) Uninstall() error {
 	// 首先尝试停止服务
 	status, err := sm.service.Status()
@@ -150,36 +171,13 @@ func (sm *serviceManager) Uninstall() error {
 	return nil
 }
 
-// Status 查询服务状态
-func (sm *serviceManager) Status() error {
-	status, err := sm.service.Status()
-	if err != nil {
-		fmt.Printf("❌ 查询服务状态失败: %v\n", err)
-		return err
-	}
-
-	statusText := "未知"
-	statusEmoji := "❓"
-	switch status {
-	case service.StatusRunning:
-		statusText = "运行中"
-		statusEmoji = "✅"
-	case service.StatusStopped:
-		statusText = "已停止"
-		statusEmoji = "⏹️"
-	case service.StatusUnknown:
-		statusText = "未知"
-		statusEmoji = "❓"
-	}
-
-	fmt.Printf("%s 服务 %s 状态: %s\n", statusEmoji, serviceName, statusText)
-	return nil
-}
-
 // Start 实现 service.Interface
 // 之前的运行逻辑已移除：业务仅通过 runForeground 启动。
 
-// handleInstallCommand 处理安装命令
+// handleInstallCommand 处理 install 子命令。
+//
+// 解析配置参数，创建服务管理器并执行安装。
+// 安装失败时直接退出进程。
 func handleInstallCommand() {
 	configPath := parseConfigFlag()
 	sm, err := NewServiceManager(configPath)
@@ -194,7 +192,10 @@ func handleInstallCommand() {
 	}
 }
 
-// handleUninstallCommand 处理卸载命令
+// handleUninstallCommand 处理 uninstall 子命令。
+//
+// 解析配置参数，创建服务管理器并执行卸载。
+// 卸载失败时直接退出进程。
 func handleUninstallCommand() {
 	configPath := parseConfigFlag()
 	sm, err := NewServiceManager(configPath)
@@ -209,36 +210,36 @@ func handleUninstallCommand() {
 	}
 }
 
-// handleStatusCommand 处理状态查询命令
-func handleStatusCommand() {
-	configPath := parseConfigFlag()
-	sm, err := NewServiceManager(configPath)
-	if err != nil {
-		fmt.Printf("❌ 创建服务管理器失败: %v\n", err)
-		os.Exit(1)
-	}
-
-	if err := sm.Status(); err != nil {
-		os.Exit(1)
-	}
-}
-
-// parseConfigFlag 解析配置文件路径参数
+// parseConfigFlag 解析配置文件路径参数。
+//
+// 支持 run/install/uninstall/status/无子命令等多种用法，
+// 自动跳过子命令参数，兼容所有入口。
+// 返回：
+//   - string：配置文件路径。
 func parseConfigFlag() string {
 	var configPath string
+
+	// 兼容 run/无子命令两种用法
+	var args []string
+	if len(os.Args) > 1 && os.Args[1] == "run" {
+		args = os.Args[2:]
+	} else if len(os.Args) > 1 && (os.Args[1] == "install" || os.Args[1] == "uninstall" || os.Args[1] == "status") {
+		args = os.Args[2:]
+	} else {
+		args = os.Args[1:]
+	}
 
 	// 创建一个新的 FlagSet 来避免与全局 flag 冲突
 	fs := flag.NewFlagSet(os.Args[0], flag.ExitOnError)
 	fs.StringVar(&configPath, "config", "configs/config.yaml", "配置文件路径")
-
-	// 解析除第一个子命令外的其他参数
-	args := os.Args[2:]
-	fs.Parse(args)
+	_ = fs.Parse(args)
 
 	return configPath
 }
 
-// printUsage 打印使用帮助
+// printUsage 打印命令行使用帮助。
+//
+// 输出所有支持的子命令和参数说明。
 func printUsage() {
 	fmt.Printf("Kratos Layout Web Service\n\n")
 	fmt.Printf("使用方法:\n")
@@ -247,12 +248,11 @@ func printUsage() {
 	fmt.Printf("  run          前台运行服务 (默认)\n")
 	fmt.Printf("  install      安装为系统服务\n")
 	fmt.Printf("  uninstall    卸载系统服务\n")
-	fmt.Printf("  status       查看服务状态\n")
 	fmt.Printf("  help         显示此帮助信息\n\n")
 	fmt.Printf("选项:\n")
 	fmt.Printf("  --config <path>    指定配置文件路径 (默认: configs/config.yaml)\n\n")
 	fmt.Printf("示例:\n")
-	fmt.Printf("  %s run --config /etc/kratos/config.yaml\n", os.Args[0])
-	fmt.Printf("  %s install --config /etc/kratos/config.yaml\n", os.Args[0])
-	fmt.Printf("  %s uninstall\n", os.Args[0])
+	fmt.Printf("  %s --config /etc/web/config.yaml\n", os.Args[0])
+	fmt.Printf("  %s install --config /etc/web/config.yaml\n", os.Args[0])
+	fmt.Printf("  %s uninstall --config /etc/web/config.yaml\n", os.Args[0])
 }
