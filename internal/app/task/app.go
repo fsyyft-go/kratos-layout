@@ -6,10 +6,10 @@ package task
 
 import (
 	"context"
-	"flag"
 	"fmt"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 
 	"github.com/google/wire"
@@ -25,19 +25,52 @@ var ProviderSet = wire.NewSet(
 	applog.NewLogger,
 )
 
-// Run 启动并运行任务执行器。
-// 该函数负责：
-//   - 解析命令行参数
-//   - 加载配置文件
-//   - 设置信号处理
-//   - 初始化并启动服务
+// Run 是 Task 应用的主入口。
+//
+// 主要流程：
+//  1. 解析命令行参数，识别并分发子命令（install、uninstall、run、help 等）。
+//  2. 若为 install/uninstall，调用对应处理函数后退出。
+//  3. 若为 run 或无子命令，则进入前台运行模式，调用 run() 启动服务。
+//
+// 该函数确保所有业务逻辑只在前台模式下启动，服务管理命令与业务解耦。
 func Run() {
-	// 定义配置文件路径变量，默认为"configs/config.yaml"。
-	var configPath string
+	if len(os.Args) > 1 {
+		subCommand := os.Args[1]
+		switch subCommand {
+		case "install":
+			handleInstallCommand()
+			return
+		case "uninstall":
+			handleUninstallCommand()
+			return
+		case "run":
+			// 显式运行命令，继续执行下面的逻辑。
+		case "--help", "-h", "help":
+			printUsage()
+			return
+		default:
+			if !strings.HasPrefix(subCommand, "-") {
+				fmt.Printf("未知命令: %s\n\n", subCommand)
+				printUsage()
+				return
+			}
+			// 否则当作普通的 flag 处理，继续执行。
+		}
+	}
 
-	// 注册命令行参数，用于指定配置文件路径。
-	flag.StringVar(&configPath, "config", "configs/config.yaml", "配置文件路径")
-	flag.Parse()
+	run()
+}
+
+// run 以前台模式启动 Task 服务。
+//
+// 主要流程：
+//  1. 解析配置文件路径参数（支持 run/无子命令等多种用法）。
+//  2. 加载配置文件，失败则直接退出。
+//  3. 创建 context 并监听 SIGINT/SIGTERM，实现优雅关闭。
+//  4. 通过 wireTask 初始化 Task 实例。
+//  5. 启动 Task，主 goroutine 阻塞直到收到信号。
+func run() {
+	configPath := parseConfigFlag()
 
 	// 从指定路径加载配置文件。
 	cfg, err := appconf.LoadConfig(configPath)

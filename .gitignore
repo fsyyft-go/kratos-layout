@@ -93,7 +93,6 @@ out/
 **/bin
 **/data
 **/debug
-**/docs
 **/logs
 **/assets/embed/**
 **/swagger
