@@ -1,0 +1,67 @@
+{
+	"name": "Kratos Layout Development",
+	"build": {
+		"dockerfile": "Dockerfile",
+		"context": "."
+	},
+	"features": {
+		"ghcr.io/devcontainers/features/github-cli:1": {}
+	},
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"golang.Go",
+				"ms-vscode.vscode-json",
+				"ms-vscode.makefile-tools",
+				"redhat.vscode-yaml",
+				"ms-vscode.vscode-docker",
+				"github.copilot",
+				"github.copilot-chat"
+			],
+			"settings": {
+				"go.toolsManagement.checkForUpdates": "local",
+				"go.useLanguageServer": true,
+				"go.formatTool": "goimports",
+				"go.lintTool": "golint",
+				"go.vetOnSave": "package",
+				"go.testOnSave": false,
+				"go.coverOnSave": false,
+				"go.gocodeAutoBuild": false,
+				"go.formatOnSave": true,
+				"go.lintOnSave": "package",
+				"go.testFlags": [
+					"-v"
+				],
+				"go.testTimeout": "30s",
+				"go.addTags": {
+					"tags": "json",
+					"options": "json=omitempty",
+					"promptForTags": false,
+					"transform": "snakecase"
+				},
+				"go.removeTags": {
+					"tags": "json",
+					"options": "",
+					"promptForTags": false
+				},
+				"go.alternateTools": {
+					"go": "go",
+					"dlv": "dlv"
+				},
+				"go.testExplorer": {
+					"showDynamicSubtestsInEditor": true,
+					"showOutput": true,
+					"showCoverage": true
+				},
+				"makefile.configureOnOpen": false
+			}
+		}
+	},
+	"postCreateCommand": "",
+	"remoteUser": "vscode",
+	"mounts": [
+		// "source=/data/var/lib/go/path/pkg/mod,target=/go/pkg/mod,type=bind,consistency=cached"
+	],
+	"workspaceMount": "source=${localWorkspaceFolder},target=/workspaces/${localWorkspaceFolderBasename},type=bind,consistency=cached",
+	"workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}"
+}
