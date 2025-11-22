@@ -104,6 +104,15 @@ generate:
 	go mod tidy
 	# 执行所有 go:generate 注释标记的代码生成命令。
 	go generate ./...
+	# 检查 Python 环境并调整 wire_gen.go 文件的 import 使其符合规范。
+	@if command -v python3 >/dev/null 2>&1; then \
+		python3 scripts/fix_wire_imports.py; \
+	else \
+		echo "❌ 错误: 未找到 Python 3 环境，无法运行 fix_wire_imports.py"; \
+		echo "   请安装 Python 3 或手动调整 wire_gen.go 文件的 import"; \
+		exit 1; \
+	fi
+	go fmt ./...
 
 # 执行基本的代码质量检查。
 .PHONY: lint
