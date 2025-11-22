@@ -2,8 +2,6 @@
 //
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
-// Package domain 实现了系统的核心领域模型。
-// 该包包含了业务实体、值对象和领域服务的定义，用于实现系统的核心业务逻辑。
 package domain
 
 import (
@@ -49,26 +47,28 @@ func NewToken(userID, username string, secret string, expiration time.Duration) 
 		UserID:   userID,
 		Username: username,
 		StandardClaims: jwt.StandardClaims{
+			// 设置 token 过期时间为当前时间加上指定的有效期。
 			ExpiresAt: time.Now().Add(expiration).Unix(),
-			IssuedAt:  time.Now().Unix(),
+			// 设置 token 签发时间为当前时间。
+			IssuedAt: time.Now().Unix(),
 		},
 	}
 
 	// 使用 HS256 算法创建新的 JWT token。
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	// 使用密钥对 token 进行签名。
+	// 使用密钥对 token 进行签名，生成最终的访问令牌字符串。
 	accessToken, err := token.SignedString([]byte(secret))
 	if err != nil {
 		return nil, err
 	}
 
-	// 生成用于刷新的令牌。
+	// 生成用于刷新的令牌，用于在访问令牌过期时获取新的访问令牌。
 	refreshToken, err := generateRefreshToken()
 	if err != nil {
 		return nil, err
 	}
 
-	// 返回完整的 Token 实例。
+	// 返回完整的 Token 实例，包含访问令牌、刷新令牌和过期时间。
 	return &Token{
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,

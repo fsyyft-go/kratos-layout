@@ -2,8 +2,6 @@
 //
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
 
-// Package conf 提供配置文件的加载和解析功能。
-// 支持从 YAML 文件中读取配置，并转换为对应的结构体。
 package conf
 
 import (
@@ -69,7 +67,7 @@ func LoadConfig(path string) (*Config, error) {
 //   - string：规范化后的绝对路径。
 //   - error：路径处理过程中可能发生的错误。
 func checkPath(path string) (string, error) {
-	// 如果路径不是绝对路径，则转换为绝对路径。
+	// 如果路径不是绝对路径，则转换为绝对路径，确保后续处理基于完整路径。
 	if !filepath.IsAbs(path) {
 		absPath, err := filepath.Abs(path)
 		if nil != err {
@@ -78,9 +76,11 @@ func checkPath(path string) (string, error) {
 		path = absPath
 	}
 
-	// 规范化路径，移除冗余的分隔符和相对路径引用。
+	// 规范化路径，移除冗余的分隔符和相对路径引用（如 ./ 和 ../）。
 	cleanPath := filepath.Clean(path)
 	// 检查清理后的路径是否与原路径一致，防止路径穿越攻击。
+	// 如果路径包含 .. 或其他可用于穿越目录的序列，filepath.Clean 会将其解析，
+	// 导致 cleanPath 与原始 path 不同，从而检测到潜在的安全风险。
 	if cleanPath != path {
 		return "", ErrInvalidPath
 	}

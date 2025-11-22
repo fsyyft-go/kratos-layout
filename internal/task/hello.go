@@ -53,17 +53,23 @@ func NewHello(logger kitlog.Logger, cfg *appconf.Config) (Hello, error) {
 // 返回值:
 //   - error: 执行过程中可能发生的错误。
 func (h *hello) Run(ctx context.Context) error {
+	// 输出当前版本信息，作为任务启动的标识。
 	fmt.Print(kitconfig.CurrentVersion.Description())
+	// 创建一个每分钟触发一次的定时器，用于周期性执行任务。
 	ticker := time.NewTicker(time.Minute)
 FOR:
+	// 进入无限循环，等待定时器触发或上下文取消。
 	for {
 		select {
+		// 监听上下文取消信号，当收到取消信号时退出循环。
 		case <-ctx.Done():
 			break FOR
+		// 监听定时器通道，每分钟执行一次日志输出。
 		case <-ticker.C:
 			h.logger.Info("Hello World!")
 		}
 	}
 
+	// 返回上下文的错误信息，通常是上下文取消的原因。
 	return ctx.Err()
 }

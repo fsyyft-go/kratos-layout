@@ -219,17 +219,21 @@ func handleUninstallCommand() {
 func parseConfigFlag() string {
 	var configPath string
 
-	// 兼容 run/无子命令两种用法
+	// 根据命令行参数的结构，提取配置相关的参数。
+	// 支持多种调用方式：run 子命令、无子命令、install/uninstall/status 子命令。
 	var args []string
 	if len(os.Args) > 1 && os.Args[1] == "run" {
+		// 处理 "app run --config path" 格式，跳过 "run" 参数。
 		args = os.Args[2:]
 	} else if len(os.Args) > 1 && (os.Args[1] == "install" || os.Args[1] == "uninstall" || os.Args[1] == "status") {
+		// 处理 "app install --config path" 格式，跳过子命令参数。
 		args = os.Args[2:]
 	} else {
+		// 处理 "app --config path" 或无参数格式，从第一个参数开始解析。
 		args = os.Args[1:]
 	}
 
-	// 创建一个新的 FlagSet 来避免与全局 flag 冲突
+	// 创建一个新的 FlagSet 来避免与全局 flag 冲突，确保参数解析的独立性。
 	fs := flag.NewFlagSet(os.Args[0], flag.ExitOnError)
 	fs.StringVar(&configPath, "config", "configs/config.yaml", "配置文件路径")
 	_ = fs.Parse(args)

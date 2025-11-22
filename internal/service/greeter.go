@@ -54,12 +54,14 @@ func NewGreeterService(logger kitlog.Logger, conf *appconf.Config, uc appbiz.Gre
 //   - *apphelloworldv1.HelloReply：问候响应。
 //   - error：可能发生的错误。
 func (s *greeterService) SayHello(ctx context.Context, in *apphelloworldv1.HelloRequest) (*apphelloworldv1.HelloReply, error) {
+	// 调用业务逻辑层创建 Greeter 实体，将请求中的名称作为问候语内容。
 	g, err := s.uc.CreateGreeter(ctx, &appbiz.Greeter{
 		Hello: in.Name,
 	})
 	if nil != err {
 		return nil, err
 	}
+	// 构造问候响应消息，格式为 "Hello {name}"。
 	return &apphelloworldv1.HelloReply{
 		Message: fmt.Sprintf("Hello %s", g.Hello),
 	}, nil
