@@ -4,7 +4,7 @@ go 1.25
 
 require (
 	github.com/envoyproxy/protoc-gen-validate v1.2.1
-	github.com/fsyyft-go/kit v0.0.15
+	github.com/fsyyft-go/kit v0.0.16-0.20251126110837-777241d2055d
 	github.com/go-kratos/kratos/v2 v2.8.4
 	github.com/golang-jwt/jwt v3.2.2+incompatible
 	github.com/google/wire v0.6.0
