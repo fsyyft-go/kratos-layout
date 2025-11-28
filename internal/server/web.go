@@ -11,9 +11,12 @@ import (
 	kratoserrors "github.com/go-kratos/kratos/v2/errors"
 	kratoslog "github.com/go-kratos/kratos/v2/log"
 	kratoslogging "github.com/go-kratos/kratos/v2/middleware/logging"
+	kratosmetrics "github.com/go-kratos/kratos/v2/middleware/metrics"
 	kratosratelimit "github.com/go-kratos/kratos/v2/middleware/ratelimit"
 	kratosrecovery "github.com/go-kratos/kratos/v2/middleware/recovery"
 	kratoshttp "github.com/go-kratos/kratos/v2/transport/http"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"go.opentelemetry.io/otel"
 
 	kitkratosmiddlewarevalidate "github.com/fsyyft-go/kit/kratos/middleware/validate"
 	kitlog "github.com/fsyyft-go/kit/log"
@@ -72,13 +75,27 @@ func NewWebServer(logger kitlog.Logger, kratosLogger kratoslog.Logger, conf *app
 		conf:         conf,
 	}
 
+	meter := otel.Meter("app")
+	metricRequests, err := kratosmetrics.DefaultRequestsCounter(meter, kratosmetrics.DefaultServerRequestsCounterName)
+	if err != nil {
+		panic(err)
+	}
+	metricSeconds, err := kratosmetrics.DefaultSecondsHistogram(meter, kratosmetrics.DefaultServerSecondsHistogramName)
+	if err != nil {
+		panic(err)
+	}
+
 	webServer.server = kratoshttp.NewServer(
 		kratoshttp.Address(conf.GetServer().GetHttp().GetAddr()),
 		kratoshttp.Logger(kratosLogger),
 		kratoshttp.Middleware(
 			kratosrecovery.Recovery(),          // 异常恢复：https://www.bookstack.cn/read/kratos-2.8-zh/b9e826c7bec1a4cb.md。
 			kratoslogging.Server(kratosLogger), // 日志记录：https://www.bookstack.cn/read/kratos-2.8-zh/14155bca8afb4099.md。
-			kratosratelimit.Server(),           // 限流：https://www.bookstack.cn/read/kratos-2.8-zh/2659b3542a9e7bd3.md。
+			kratosmetrics.Server( // 指标蹭件：https://github.com/go-kratos/examples/blob/main/metrics/main.go，怎么输出？
+				kratosmetrics.WithSeconds(metricSeconds),
+				kratosmetrics.WithRequests(metricRequests),
+			),
+			kratosratelimit.Server(), // 限流：https://www.bookstack.cn/read/kratos-2.8-zh/2659b3542a9e7bd3.md。
 			kitkratosmiddlewarevalidate.Validator(kitkratosmiddlewarevalidate.WithValidateCallback(webServer.validateCallback)), // 参数检验：https://www.bookstack.cn/read/kratos-2.8-zh/cc41b2328fb6d9e5.md。
 		),
 	)
@@ -98,6 +115,10 @@ func (s *webServer) registerGinHandler() {
 	engine := gin.Default()
 	// 注册 Gin 处理的 Handler 到 Kratos HTTP 服务器。
 	s.server.HandlePrefix("/", engine)
+
+	engine.GET("/metrics", func(c *gin.Context) {
+		promhttp.Handler().ServeHTTP(c.Writer, c.Request)
+	})
 }
 
 // Start 实现启动 Web 服务器的功能。
