@@ -6,7 +6,6 @@ package server
 
 import (
 	"context"
-	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-kratos/kratos/v2/errors"
@@ -14,7 +13,6 @@ import (
 	kratoshttp "github.com/go-kratos/kratos/v2/transport/http"
 
 	kitkratosmiddlewarevalidate "github.com/fsyyft-go/kit/kratos/middleware/validate"
-	kitkratostransporthttp "github.com/fsyyft-go/kit/kratos/transport/http"
 	kitlog "github.com/fsyyft-go/kit/log"
 	kitruntime "github.com/fsyyft-go/kit/runtime"
 
@@ -40,8 +38,8 @@ type (
 		// 应用配置。
 		conf *appconf.Config
 		// Gin 引擎，用于处理 HTTP 请求。
-		engine     *gin.Engine
-		httpServer *http.Server
+		engine *gin.Engine
+		server *kratoshttp.Server
 	}
 )
 
@@ -70,6 +68,7 @@ func NewWebServer(logger kitlog.Logger, conf *appconf.Config,
 	}
 
 	server := kratoshttp.NewServer(
+		kratoshttp.Address(conf.GetServer().GetHttp().GetAddr()),
 		kratoshttp.Middleware(
 			recovery.Recovery(),
 			kitkratosmiddlewarevalidate.Validator(kitkratosmiddlewarevalidate.WithValidateCallback(webServer.validateCallback)),
@@ -81,7 +80,10 @@ func NewWebServer(logger kitlog.Logger, conf *appconf.Config,
 	// 初始化 Gin 引擎，并配置默认中间件。
 	webServer.engine = gin.Default()
 	// 将 Kratos HTTP 服务解析到 Gin 引擎中。
-	kitkratostransporthttp.Parse(server, webServer.engine)
+	// kitkratostransporthttp.Parse(server, webServer.engine)
+
+	server.HandlePrefix("/", webServer.engine)
+	webServer.server = server
 
 	var cleanup = func() {}
 
@@ -96,12 +98,13 @@ func NewWebServer(logger kitlog.Logger, conf *appconf.Config,
 //
 // 返回值：
 //   - error：启动过程中可能发生的错误。
-func (s *webServer) Start(_ context.Context) error {
-	s.httpServer = &http.Server{
-		Addr:    s.conf.GetServer().GetHttp().GetAddr(),
-		Handler: s.engine,
-	}
-	return s.httpServer.ListenAndServe()
+func (s *webServer) Start(ctx context.Context) error {
+	// s.httpServer = &http.Server{
+	// 	Addr:    s.conf.GetServer().GetHttp().GetAddr(),
+	// 	Handler: s.engine,
+	// }
+	// return s.httpServer.ListenAndServe()
+	return s.server.Start(ctx)
 }
 
 // Stop 实现停止 Web 服务器的功能。
@@ -111,11 +114,12 @@ func (s *webServer) Start(_ context.Context) error {
 //
 // 返回值：
 //   - error：停止过程中可能发生的错误。
-func (s *webServer) Stop(_ context.Context) error {
-	if nil != s.httpServer {
-		return s.httpServer.Close()
-	}
-	return nil
+func (s *webServer) Stop(ctx context.Context) error {
+	// if nil != s.httpServer {
+	// 	return s.httpServer.Close()
+	// }
+	// return nil
+	return s.server.Stop(ctx)
 }
 
 // Engine 返回 Gin 引擎实例。
