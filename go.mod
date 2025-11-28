@@ -12,7 +12,6 @@ require (
 	github.com/nacos-group/nacos-sdk-go v1.0.9
 	github.com/prometheus/client_golang v1.23.0
 	go.opentelemetry.io/otel/sdk/metric v1.38.0
-	github.com/kardianos/service v1.2.4
 	google.golang.org/genproto/googleapis/api v0.0.0-20250519155744-55703ea1f237
 	google.golang.org/grpc v1.71.0
 	google.golang.org/protobuf v1.36.8
