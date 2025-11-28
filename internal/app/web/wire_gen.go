@@ -7,6 +7,8 @@
 package web
 
 import (
+	"context"
+
 	"github.com/go-kratos/kratos/v2"
 
 	appbiz "github.com/fsyyft-go/kratos-layout/internal/biz"
@@ -19,7 +21,7 @@ import (
 
 // Injectors from wire.go:
 
-func wireWeb(conf *appconf.Config) (*kratos.App, func(), error) {
+func wireWeb(ctx context.Context, conf *appconf.Config) (*kratos.App, func(), error) {
 	logger, cleanup, err := applog.NewLogger(conf)
 	if err != nil {
 		return nil, nil, err
@@ -38,7 +40,7 @@ func wireWeb(conf *appconf.Config) (*kratos.App, func(), error) {
 		cleanup()
 		return nil, nil, err
 	}
-	app := newApp(webServer)
+	app := newApp(ctx, logger, webServer)
 	return app, func() {
 		cleanup3()
 		cleanup2()

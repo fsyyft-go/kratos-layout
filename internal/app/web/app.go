@@ -14,6 +14,8 @@ import (
 	"github.com/go-kratos/kratos/v2"
 	"github.com/google/wire"
 
+	kitlog "github.com/fsyyft-go/kit/log"
+
 	// 模板：下面这条导入，应用时需要修改。
 	appconf "github.com/fsyyft-go/kratos-layout/internal/pkg/conf"
 	applog "github.com/fsyyft-go/kratos-layout/internal/pkg/log"
@@ -28,17 +30,49 @@ var ProviderSet = wire.NewSet(
 )
 
 var (
-	name  = "kratos-layout"
+	// name 存储应用的名称，用于标识当前应用实例。
+	name = "kratos-layout"
+	// id 存储主机名，用于唯一标识应用实例。
 	id, _ = os.Hostname()
 )
 
-func newApp(hs appserver.WebServer) *kratos.App {
+// newApp 创建并配置 Kratos 应用实例。
+// 参数：
+//   - ctx：请求上下文，用于取消与超时控制。
+//   - logger：日志记录器，用于记录应用生命周期事件。
+//   - hs：Web 服务器实例，用于处理 HTTP 请求。
+//
+// 返回值：
+//   - *kratos.App：配置好的 Kratos 应用实例。
+func newApp(ctx context.Context, logger kitlog.Logger, hs appserver.WebServer) *kratos.App {
+	// 使用 Kratos 框架创建应用实例，配置上下文、ID、名称和服务器。
 	a := kratos.New(
+		kratos.Context(ctx),
 		kratos.ID(id),
 		kratos.Name(name),
 		kratos.Server(
 			hs,
 		),
+		// 配置应用启动前的回调函数，记录启动日志。
+		kratos.BeforeStart(func(ctx context.Context) error {
+			logger.WithField("app", "web").Info("启动服务")
+			return nil
+		}),
+		// 配置应用启动成功后的回调函数，记录成功日志。
+		kratos.AfterStart(func(ctx context.Context) error {
+			logger.WithField("app", "web").Info("服务启动成功")
+			return nil
+		}),
+		// 配置应用停止前的回调函数，记录停止日志。
+		kratos.BeforeStop(func(ctx context.Context) error {
+			logger.WithField("app", "web").Info("停止服务")
+			return nil
+		}),
+		// 配置应用停止成功后的回调函数，记录停止成功日志。
+		kratos.AfterStop(func(ctx context.Context) error {
+			logger.WithField("app", "web").Info("服务停止成功")
+			return nil
+		}),
 	)
 	return a
 }
@@ -52,19 +86,23 @@ func newApp(hs appserver.WebServer) *kratos.App {
 //
 // 该函数确保所有业务逻辑只在前台模式下启动，服务管理命令与业务解耦。
 func Run() {
-	// 检查是否有子命令。
+	// 检查命令行参数长度，判断是否存在子命令。
 	if len(os.Args) > 1 {
 		subCommand := os.Args[1]
+		// 根据子命令类型执行相应操作。
 		switch subCommand {
 		case "install":
+			// 调用安装命令处理函数。
 			handleInstallCommand()
 			return
 		case "uninstall":
+			// 调用卸载命令处理函数。
 			handleUninstallCommand()
 			return
 		case "run":
 			// 显式运行命令，继续执行下面的逻辑。
 		case "--help", "-h", "help":
+			// 显示帮助信息并退出。
 			printUsage()
 			return
 		default:
@@ -102,14 +140,14 @@ func run() {
 	}
 
 	// 创建可取消的 context，用于优雅关闭。
-	_, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	// 监听系统信号（SIGINT/SIGTERM），用于优雅关闭。
 	signalChan := make(chan os.Signal, 1)
 	signal.Notify(signalChan, syscall.SIGINT, syscall.SIGTERM)
 
-	// 信号处理 goroutine，收到信号后取消 context。
+	// 启动信号处理 goroutine，收到信号后取消 context。
 	go func() {
 		sig := <-signalChan
 		fmt.Printf("接收到系统信号: %v\n", sig)
@@ -118,7 +156,7 @@ func run() {
 
 	// 通过 Wire 框架生成的 wireWeb 函数初始化服务。
 	// 该函数会自动注入所有依赖项并返回配置好的 Web 服务器实例。
-	if w, cleanup, err := wireWeb(cfg); nil != err {
+	if w, cleanup, err := wireWeb(ctx, cfg); nil != err {
 		fmt.Printf("初始化失败：%v", err)
 		// 调用清理函数释放已分配的资源。
 		cleanup()
