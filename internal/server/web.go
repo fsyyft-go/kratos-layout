@@ -6,20 +6,31 @@ package server
 
 import (
 	"context"
-	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/go-kratos/kratos/v2/errors"
-	"github.com/go-kratos/kratos/v2/middleware/recovery"
+	kratoserrors "github.com/go-kratos/kratos/v2/errors"
+	kratoslogging "github.com/go-kratos/kratos/v2/middleware/logging"
+	kratosmetadata "github.com/go-kratos/kratos/v2/middleware/metadata"
+	kratosmetrics "github.com/go-kratos/kratos/v2/middleware/metrics"
+	kratosratelimit "github.com/go-kratos/kratos/v2/middleware/ratelimit"
+	kratosrecovery "github.com/go-kratos/kratos/v2/middleware/recovery"
 	kratoshttp "github.com/go-kratos/kratos/v2/transport/http"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+	otelprometheus "go.opentelemetry.io/otel/exporters/prometheus"
+	otelmetric "go.opentelemetry.io/otel/sdk/metric"
 
 	kitkratosmiddlewarevalidate "github.com/fsyyft-go/kit/kratos/middleware/validate"
-	kitkratostransporthttp "github.com/fsyyft-go/kit/kratos/transport/http"
 	kitlog "github.com/fsyyft-go/kit/log"
 	kitruntime "github.com/fsyyft-go/kit/runtime"
 
 	apphelloworldv1 "github.com/fsyyft-go/kratos-layout/api/helloworld/v1"
 	appconf "github.com/fsyyft-go/kratos-layout/internal/pkg/conf"
+	applog "github.com/fsyyft-go/kratos-layout/internal/pkg/log"
+)
+
+var (
+	meterName         = "kratos-layout-web"
+	loggerFileldNamme = "kratos-web"
 )
 
 var (
@@ -29,8 +40,7 @@ var (
 type (
 	// WebServer 定义了 Web 服务器的接口。
 	WebServer interface {
-		kitruntime.Runner    // 继承 Runner 接口，提供 Start 和 Stop 方法。
-		Engine() *gin.Engine // 返回 Gin 引擎实例，允许外部访问和配置。
+		kitruntime.Runner // 继承 Runner 接口，提供 Start 和 Stop 方法。
 	}
 
 	// webServer 实现了 WebServer 接口，提供 Web 服务器功能。
@@ -39,9 +49,8 @@ type (
 		logger kitlog.Logger
 		// 应用配置。
 		conf *appconf.Config
-		// Gin 引擎，用于处理 HTTP 请求。
-		engine     *gin.Engine
-		httpServer *http.Server
+		// 服务器实例。
+		server *kratoshttp.Server
 	}
 )
 
@@ -69,23 +78,64 @@ func NewWebServer(logger kitlog.Logger, conf *appconf.Config,
 		conf:   conf,
 	}
 
-	server := kratoshttp.NewServer(
+	var exporter *otelprometheus.Exporter
+	if exp, err := otelprometheus.New(); err != nil {
+		panic(err)
+	} else {
+		exporter = exp
+	}
+	provider := otelmetric.NewMeterProvider(
+		otelmetric.WithReader(exporter),
+	)
+
+	meter := provider.Meter(meterName)
+	metricRequests, err := kratosmetrics.DefaultRequestsCounter(meter, kratosmetrics.DefaultServerRequestsCounterName)
+	if err != nil {
+		panic(err)
+	}
+	metricSeconds, err := kratosmetrics.DefaultSecondsHistogram(meter, kratosmetrics.DefaultServerSecondsHistogramName)
+	if err != nil {
+		panic(err)
+	}
+
+	kratosLoggerWeb := applog.NewKratosLogger(logger.WithField(loggerFileldNamme, ""))
+
+	webServer.server = kratoshttp.NewServer(
+		kratoshttp.Address(conf.GetServer().GetHttp().GetAddr()),
+		kratoshttp.Logger(kratosLoggerWeb),
 		kratoshttp.Middleware(
-			recovery.Recovery(),
-			kitkratosmiddlewarevalidate.Validator(kitkratosmiddlewarevalidate.WithValidateCallback(webServer.validateCallback)),
+			kratosrecovery.Recovery(),             // 异常恢复：https://www.bookstack.cn/read/kratos-2.8-zh/b9e826c7bec1a4cb.md。
+			kratoslogging.Server(kratosLoggerWeb), // 日志记录：https://www.bookstack.cn/read/kratos-2.8-zh/14155bca8afb4099.md。
+			kratosmetadata.Server(),               // 元信息：https://go-kratos.dev/zh-cn/docs/component/metadata/。
+			kratosmetrics.Server( // 指标：https://www.bookstack.cn/read/kratos-2.8-zh/4c2b93bf8331b052.md、https://github.com/go-kratos/examples/blob/main/metrics/main.go。
+				kratosmetrics.WithSeconds(metricSeconds),
+				kratosmetrics.WithRequests(metricRequests),
+			),
+			kratosratelimit.Server(), // 限流：https://www.bookstack.cn/read/kratos-2.8-zh/2659b3542a9e7bd3.md。
+			kitkratosmiddlewarevalidate.Validator(kitkratosmiddlewarevalidate.WithValidateCallback(webServer.validateCallback)), // 参数检验：https://www.bookstack.cn/read/kratos-2.8-zh/cc41b2328fb6d9e5.md。
 		),
 	)
 
-	apphelloworldv1.RegisterGreeterHTTPServer(server, greeter)
-
-	// 初始化 Gin 引擎，并配置默认中间件。
-	webServer.engine = gin.Default()
-	// 将 Kratos HTTP 服务解析到 Gin 引擎中。
-	kitkratostransporthttp.Parse(server, webServer.engine)
+	// 注册 HTTP 处理器。
+	apphelloworldv1.RegisterGreeterHTTPServer(webServer.server, greeter)
+	// 注册 Gin 处理器。
+	webServer.registerGinHandler()
 
 	var cleanup = func() {}
 
 	return webServer, cleanup, err
+}
+
+func (s *webServer) registerGinHandler() {
+	// 创建 Gin 引擎。
+	engine := gin.Default()
+	// 注册 Gin 处理的 Handler 到 Kratos HTTP 服务器。
+	s.server.HandlePrefix("/", engine)
+
+	engine.GET("/metrics", func(c *gin.Context) {
+		// 使用 promhttp.Handler 返回全局 Prometheus Registry 中的指标数据。
+		promhttp.Handler().ServeHTTP(c.Writer, c.Request)
+	})
 }
 
 // Start 实现启动 Web 服务器的功能。
@@ -96,12 +146,8 @@ func NewWebServer(logger kitlog.Logger, conf *appconf.Config,
 //
 // 返回值：
 //   - error：启动过程中可能发生的错误。
-func (s *webServer) Start(_ context.Context) error {
-	s.httpServer = &http.Server{
-		Addr:    s.conf.GetServer().GetHttp().GetAddr(),
-		Handler: s.engine,
-	}
-	return s.httpServer.ListenAndServe()
+func (s *webServer) Start(ctx context.Context) error {
+	return s.server.Start(ctx)
 }
 
 // Stop 实现停止 Web 服务器的功能。
@@ -111,19 +157,8 @@ func (s *webServer) Start(_ context.Context) error {
 //
 // 返回值：
 //   - error：停止过程中可能发生的错误。
-func (s *webServer) Stop(_ context.Context) error {
-	if nil != s.httpServer {
-		return s.httpServer.Close()
-	}
-	return nil
-}
-
-// Engine 返回 Gin 引擎实例。
-//
-// 返回值：
-//   - *gin.Engine：配置好的 Gin 引擎实例。
-func (s *webServer) Engine() *gin.Engine {
-	panic("unimplemented")
+func (s *webServer) Stop(ctx context.Context) error {
+	return s.server.Stop(ctx)
 }
 
 // validateCallback 处理请求验证失败的回调函数。
@@ -141,5 +176,5 @@ func (s *webServer) validateCallback(_ context.Context, req interface{}, errVali
 	// 记录请求和验证错误信息。
 	s.logger.WithField("req", req).WithField("errValidate", errValidate).Info("validateCallback")
 	// 返回标准化的错误响应。
-	return nil, errors.BadRequest("VALIDATOR", "请求参数错误，详见日志")
+	return nil, kratoserrors.BadRequest("VALIDATOR", "请求参数错误，详见日志")
 }

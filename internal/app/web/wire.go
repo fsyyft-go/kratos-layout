@@ -8,6 +8,9 @@
 package web
 
 import (
+	"context"
+
+	"github.com/go-kratos/kratos/v2"
 	"github.com/google/wire"
 
 	// 模板：下面这条导入，应用时需要修改。
@@ -18,7 +21,7 @@ import (
 	appservice "github.com/fsyyft-go/kratos-layout/internal/service"
 )
 
-func wireWeb(conf *appconf.Config) (appserver.WebServer, func(), error) {
+func wireWeb(ctx context.Context, conf *appconf.Config) (*kratos.App, func(), error) {
 	// wire.Build 函数用于声明依赖关系图，将所有组件连接在一起。
 	// panic 调用会在编译时被 wire 工具替换为实际的依赖注入代码。
 	// make generate 如果无法生成时，可以尝试使用 wire ./internal/app/web 生成，可以看到更加详细的错误处理。

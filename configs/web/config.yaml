@@ -6,7 +6,6 @@ log:
   output: logs/app.log
   # 日志级别，可选值：debug、info、warn、error。
   level: debug
-
 # 服务器配置。
 server:
   # HTTP 服务器配置。
@@ -17,3 +16,15 @@ server:
     addr: 127.0.0.1:44444
     # 请求超时时间。
     timeout: 10s
+register:
+  type: 0
+  nacos:
+    server_addr: 127.0.0.1
+    server_port: 8848
+    client:
+      cache_dir: ./logs/nacos/cache
+      log_dir: ./logs/nacos/log
+      log_level: debug
+      namespace_id: cf3599ce-0bb2-4896-9ef6-4b7ecd2551f5
+      username: test
+      password: test
