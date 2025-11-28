@@ -10,6 +10,7 @@ import (
 	"github.com/gin-gonic/gin"
 	kratoserrors "github.com/go-kratos/kratos/v2/errors"
 	kratoslogging "github.com/go-kratos/kratos/v2/middleware/logging"
+	kratosmetadata "github.com/go-kratos/kratos/v2/middleware/metadata"
 	kratosmetrics "github.com/go-kratos/kratos/v2/middleware/metrics"
 	kratosratelimit "github.com/go-kratos/kratos/v2/middleware/ratelimit"
 	kratosrecovery "github.com/go-kratos/kratos/v2/middleware/recovery"
@@ -105,7 +106,8 @@ func NewWebServer(logger kitlog.Logger, conf *appconf.Config,
 		kratoshttp.Middleware(
 			kratosrecovery.Recovery(),             // 异常恢复：https://www.bookstack.cn/read/kratos-2.8-zh/b9e826c7bec1a4cb.md。
 			kratoslogging.Server(kratosLoggerWeb), // 日志记录：https://www.bookstack.cn/read/kratos-2.8-zh/14155bca8afb4099.md。
-			kratosmetrics.Server( // 指标中间件：https://www.bookstack.cn/read/kratos-2.8-zh/4c2b93bf8331b052.md、https://github.com/go-kratos/examples/blob/main/metrics/main.go。
+			kratosmetadata.Server(),               // 元信息：https://go-kratos.dev/zh-cn/docs/component/metadata/。
+			kratosmetrics.Server( // 指标：https://www.bookstack.cn/read/kratos-2.8-zh/4c2b93bf8331b052.md、https://github.com/go-kratos/examples/blob/main/metrics/main.go。
 				kratosmetrics.WithSeconds(metricSeconds),
 				kratosmetrics.WithRequests(metricRequests),
 			),
