@@ -11,6 +11,7 @@ import (
 	kratoserrors "github.com/go-kratos/kratos/v2/errors"
 	kratoslog "github.com/go-kratos/kratos/v2/log"
 	kratoslogging "github.com/go-kratos/kratos/v2/middleware/logging"
+	kratosratelimit "github.com/go-kratos/kratos/v2/middleware/ratelimit"
 	kratosrecovery "github.com/go-kratos/kratos/v2/middleware/recovery"
 	kratoshttp "github.com/go-kratos/kratos/v2/transport/http"
 
@@ -75,9 +76,11 @@ func NewWebServer(logger kitlog.Logger, kratosLogger kratoslog.Logger, conf *app
 		kratoshttp.Address(conf.GetServer().GetHttp().GetAddr()),
 		kratoshttp.Logger(kratosLogger),
 		kratoshttp.Middleware(
-			kratosrecovery.Recovery(),
-			kitkratosmiddlewarevalidate.Validator(kitkratosmiddlewarevalidate.WithValidateCallback(webServer.validateCallback)),
-			kratoslogging.Server(kratosLogger)),
+			kratosrecovery.Recovery(),          // 异常恢复：https://www.bookstack.cn/read/kratos-2.8-zh/b9e826c7bec1a4cb.md。
+			kratoslogging.Server(kratosLogger), // 日志记录：https://www.bookstack.cn/read/kratos-2.8-zh/14155bca8afb4099.md。
+			kratosratelimit.Server(),           // 限流：https://www.bookstack.cn/read/kratos-2.8-zh/2659b3542a9e7bd3.md。
+			kitkratosmiddlewarevalidate.Validator(kitkratosmiddlewarevalidate.WithValidateCallback(webServer.validateCallback)), // 参数检验：https://www.bookstack.cn/read/kratos-2.8-zh/cc41b2328fb6d9e5.md。
+		),
 	)
 
 	// 注册 HTTP 处理器。
