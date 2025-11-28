@@ -16,7 +16,8 @@ import (
 	kratosrecovery "github.com/go-kratos/kratos/v2/middleware/recovery"
 	kratoshttp "github.com/go-kratos/kratos/v2/transport/http"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"go.opentelemetry.io/otel"
+	otelprometheus "go.opentelemetry.io/otel/exporters/prometheus"
+	otelmetric "go.opentelemetry.io/otel/sdk/metric"
 
 	kitkratosmiddlewarevalidate "github.com/fsyyft-go/kit/kratos/middleware/validate"
 	kitlog "github.com/fsyyft-go/kit/log"
@@ -75,7 +76,17 @@ func NewWebServer(logger kitlog.Logger, kratosLogger kratoslog.Logger, conf *app
 		conf:         conf,
 	}
 
-	meter := otel.Meter("app")
+	var exporter *otelprometheus.Exporter
+	if exp, err := otelprometheus.New(); err != nil {
+		panic(err)
+	} else {
+		exporter = exp
+	}
+	provider := otelmetric.NewMeterProvider(
+		otelmetric.WithReader(exporter),
+	)
+
+	meter := provider.Meter("app")
 	metricRequests, err := kratosmetrics.DefaultRequestsCounter(meter, kratosmetrics.DefaultServerRequestsCounterName)
 	if err != nil {
 		panic(err)
@@ -91,7 +102,7 @@ func NewWebServer(logger kitlog.Logger, kratosLogger kratoslog.Logger, conf *app
 		kratoshttp.Middleware(
 			kratosrecovery.Recovery(),          // 异常恢复：https://www.bookstack.cn/read/kratos-2.8-zh/b9e826c7bec1a4cb.md。
 			kratoslogging.Server(kratosLogger), // 日志记录：https://www.bookstack.cn/read/kratos-2.8-zh/14155bca8afb4099.md。
-			kratosmetrics.Server( // 指标蹭件：https://github.com/go-kratos/examples/blob/main/metrics/main.go，怎么输出？
+			kratosmetrics.Server( // 指标中间件：https://www.bookstack.cn/read/kratos-2.8-zh/4c2b93bf8331b052.md、https://github.com/go-kratos/examples/blob/main/metrics/main.go。
 				kratosmetrics.WithSeconds(metricSeconds),
 				kratosmetrics.WithRequests(metricRequests),
 			),
@@ -117,6 +128,7 @@ func (s *webServer) registerGinHandler() {
 	s.server.HandlePrefix("/", engine)
 
 	engine.GET("/metrics", func(c *gin.Context) {
+		// 使用 promhttp.Handler 返回全局 Prometheus Registry 中的指标数据。
 		promhttp.Handler().ServeHTTP(c.Writer, c.Request)
 	})
 }
