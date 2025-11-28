@@ -27,8 +27,7 @@ var (
 type (
 	// WebServer 定义了 Web 服务器的接口。
 	WebServer interface {
-		kitruntime.Runner    // 继承 Runner 接口，提供 Start 和 Stop 方法。
-		Engine() *gin.Engine // 返回 Gin 引擎实例，允许外部访问和配置。
+		kitruntime.Runner // 继承 Runner 接口，提供 Start 和 Stop 方法。
 	}
 
 	// webServer 实现了 WebServer 接口，提供 Web 服务器功能。
@@ -37,8 +36,7 @@ type (
 		logger kitlog.Logger
 		// 应用配置。
 		conf *appconf.Config
-		// Gin 引擎，用于处理 HTTP 请求。
-		engine *gin.Engine
+		// 服务器实例。
 		server *kratoshttp.Server
 	}
 )
@@ -67,7 +65,7 @@ func NewWebServer(logger kitlog.Logger, conf *appconf.Config,
 		conf:   conf,
 	}
 
-	server := kratoshttp.NewServer(
+	webServer.server = kratoshttp.NewServer(
 		kratoshttp.Address(conf.GetServer().GetHttp().GetAddr()),
 		kratoshttp.Middleware(
 			recovery.Recovery(),
@@ -75,19 +73,21 @@ func NewWebServer(logger kitlog.Logger, conf *appconf.Config,
 		),
 	)
 
-	apphelloworldv1.RegisterGreeterHTTPServer(server, greeter)
-
-	// 初始化 Gin 引擎，并配置默认中间件。
-	webServer.engine = gin.Default()
-	// 将 Kratos HTTP 服务解析到 Gin 引擎中。
-	// kitkratostransporthttp.Parse(server, webServer.engine)
-
-	server.HandlePrefix("/", webServer.engine)
-	webServer.server = server
+	// 注册 HTTP 处理器。
+	apphelloworldv1.RegisterGreeterHTTPServer(webServer.server, greeter)
+	// 注册 Gin 处理器。
+	webServer.registerGinHandler()
 
 	var cleanup = func() {}
 
 	return webServer, cleanup, err
+}
+
+func (s *webServer) registerGinHandler() {
+	// 创建 Gin 引擎。
+	engine := gin.Default()
+	// 注册 Gin 处理的 Handler 到 Kratos HTTP 服务器。
+	s.server.HandlePrefix("/", engine)
 }
 
 // Start 实现启动 Web 服务器的功能。
@@ -99,11 +99,6 @@ func NewWebServer(logger kitlog.Logger, conf *appconf.Config,
 // 返回值：
 //   - error：启动过程中可能发生的错误。
 func (s *webServer) Start(ctx context.Context) error {
-	// s.httpServer = &http.Server{
-	// 	Addr:    s.conf.GetServer().GetHttp().GetAddr(),
-	// 	Handler: s.engine,
-	// }
-	// return s.httpServer.ListenAndServe()
 	return s.server.Start(ctx)
 }
 
@@ -115,19 +110,7 @@ func (s *webServer) Start(ctx context.Context) error {
 // 返回值：
 //   - error：停止过程中可能发生的错误。
 func (s *webServer) Stop(ctx context.Context) error {
-	// if nil != s.httpServer {
-	// 	return s.httpServer.Close()
-	// }
-	// return nil
 	return s.server.Stop(ctx)
-}
-
-// Engine 返回 Gin 引擎实例。
-//
-// 返回值：
-//   - *gin.Engine：配置好的 Gin 引擎实例。
-func (s *webServer) Engine() *gin.Engine {
-	panic("unimplemented")
 }
 
 // validateCallback 处理请求验证失败的回调函数。
