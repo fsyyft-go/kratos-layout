@@ -41,7 +41,7 @@ func wireWeb(ctx context.Context, conf *appconf.Config) (*kratos.App, func(), er
 		cleanup()
 		return nil, nil, err
 	}
-	app := newApp(ctx, logger, kratosLogger, webServer)
+	app := newApp(ctx, logger, kratosLogger, conf, webServer)
 	return app, func() {
 		cleanup3()
 		cleanup2()

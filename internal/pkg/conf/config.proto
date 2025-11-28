@@ -1,6 +1,7 @@
 // Copyright 2025 fsyyft-go
 //
-// Licensed under the MIT License. See LICENSE file in the project root for full license information.
+// Licensed under the MIT License. See LICENSE file in the project root for full
+// license information.
 
 // 指定 Protocol Buffers 语法版本为 proto3。
 syntax = "proto3";
@@ -20,6 +21,8 @@ message Config {
   Log log = 1;
   // Server 配置应用程序的服务器设置。
   Server server = 2;
+  // Register 配置应用程序的注册系统。
+  Register register = 3;
 }
 
 // Log 定义日志系统的详细配置参数。
@@ -47,3 +50,54 @@ message Server {
   HTTP http = 1;
 }
 
+// RegisterType 定义注册系统类型的枚举。
+enum RegisterType {
+  // REGISTER_TYPE_UNSPECIFIED 表示未指定，等同于不开启注册。
+  REGISTER_TYPE_UNSPECIFIED = 0;
+  // REGISTER_TYPE_NACOS 表示使用 Nacos 作为注册系统。
+  REGISTER_TYPE_NACOS = 1;
+}
+
+// Register 配置应用程序的注册系统。
+message Register {
+  // Nacos 配置 Nacos 注册系统的参数。
+  message Nacos {
+    // NacosClient 配置 Nacos 客户端的详细参数。
+    // 用于定制客户端行为，包括超时设置、心跳间隔、缓存策略和日志配置等。
+    message Client {
+      // timeout_ms 指定客户端请求的超时时间，单位为毫秒。
+      int32 timeout_ms = 1;
+      // beat_interval_ms 指定心跳间隔，用于与 Nacos
+      // 服务器保持连接活跃，单位为毫秒。
+      int32 beat_interval_ms = 2;
+      // open_kms 指定是否启用 KMS（密钥管理服务）加密。
+      bool open_kms = 3;
+      // cache_dir 指定本地缓存目录的路径，用于存储服务列表等缓存数据。
+      string cache_dir = 4;
+      // update_thread_num 指定更新线程的数量，用于并发处理服务更新。
+      int32 update_thread_num = 5;
+      // not_load_cache_at_start 指定启动时是否不加载本地缓存，为 true
+      // 时忽略缓存。
+      bool not_load_cache_at_start = 6;
+      // update_cache_when_empty 指定当服务列表为空时是否更新缓存。
+      bool update_cache_when_empty = 7;
+      // log_dir 指定客户端日志的输出目录路径。
+      string log_dir = 8;
+      // log_level 指定客户端日志级别，可选值包括：debug、info、warn、error。
+      string log_level = 9;
+      // namespace_id 命名空间 ID，用于标识不同的命名空间。
+      string namespace_id = 10;
+      // username 命名空间用户名，用于访问 Nacos 服务。
+      string username = 11;
+      // password 命名空间密码，用于访问 Nacos 服务。
+      string password = 12;
+    }
+    string server_addr = 1;
+    int32 server_port = 2;
+    Client client = 3;
+  }
+  // type 配置注册系统的类型，使用 RegisterType 枚举。
+  RegisterType type = 1;
+  // nacos 配置 Nacos 注册系统的参数。
+  Nacos nacos = 2;
+}

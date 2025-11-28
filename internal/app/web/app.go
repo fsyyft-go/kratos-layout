@@ -6,14 +6,19 @@ package web
 import (
 	"context"
 	"fmt"
+	"net/url"
 	"os"
 	"os/signal"
 	"strings"
 	"syscall"
 
+	kratosnacos "github.com/go-kratos/kratos/contrib/registry/nacos/v2"
 	"github.com/go-kratos/kratos/v2"
 	kratoslog "github.com/go-kratos/kratos/v2/log"
 	"github.com/google/wire"
+	kratosnacosclients "github.com/nacos-group/nacos-sdk-go/clients"
+	kratosnacosconstant "github.com/nacos-group/nacos-sdk-go/common/constant"
+	kratosnacosvo "github.com/nacos-group/nacos-sdk-go/vo"
 
 	kitlog "github.com/fsyyft-go/kit/log"
 
@@ -46,14 +51,13 @@ var (
 //   - hs：Web 服务器实例，用于处理 HTTP 请求。
 //
 // 返回值：
-//   - *kratos.App：配置好的 Kratos 应用实例。
-func newApp(ctx context.Context, logger kitlog.Logger, kratosLogger kratoslog.Logger, hs appserver.WebServer) *kratos.App {
-	// 使用 Kratos 框架创建应用实例，配置上下文、ID、名称和服务器。
-	a := kratos.New(
+func newApp(ctx context.Context, logger kitlog.Logger, kratosLogger kratoslog.Logger, conf *appconf.Config, hs appserver.WebServer) *kratos.App {
+	opts := []kratos.Option{
 		kratos.Context(ctx),
 		kratos.ID(id),
 		kratos.Name(name),
 		kratos.Logger(kratosLogger),
+		kratos.Metadata(make(map[string]string)),
 		kratos.Server(
 			hs,
 		),
@@ -77,7 +81,46 @@ func newApp(ctx context.Context, logger kitlog.Logger, kratosLogger kratoslog.Lo
 			logger.WithField("app", "web").Info("服务停止成功")
 			return nil
 		}),
-	)
+	}
+
+	if *appconf.RegisterType_REGISTER_TYPE_UNSPECIFIED.Enum() != conf.Register.Type {
+		// TODO 真实场景需要替换为外部可以访问的正确的地址。
+		endpoint, err := url.Parse("http://" + conf.Server.Http.Addr)
+		if err != nil {
+			panic(err)
+		}
+		opts = append(opts, kratos.Endpoint(endpoint))
+		if *appconf.RegisterType_REGISTER_TYPE_NACOS.Enum() == conf.Register.Type {
+			sc := kratosnacosconstant.NewServerConfig(
+				conf.Register.Nacos.ServerAddr,
+				uint64(conf.Register.Nacos.ServerPort),
+			)
+			cc := kratosnacosconstant.NewClientConfig(
+				kratosnacosconstant.WithNamespaceId(conf.Register.Nacos.Client.NamespaceId),
+				kratosnacosconstant.WithCacheDir(conf.Register.Nacos.Client.CacheDir),
+				kratosnacosconstant.WithLogDir(conf.Register.Nacos.Client.LogDir),
+				kratosnacosconstant.WithLogLevel(conf.Register.Nacos.Client.LogLevel),
+				kratosnacosconstant.WithUsername(conf.Register.Nacos.Client.Username),
+				kratosnacosconstant.WithPassword(conf.Register.Nacos.Client.Password),
+			)
+			client, err := kratosnacosclients.NewNamingClient(
+				kratosnacosvo.NacosClientParam{
+					ServerConfigs: []kratosnacosconstant.ServerConfig{*sc},
+					ClientConfig:  cc,
+				},
+			)
+
+			if err != nil {
+				panic(err)
+			}
+
+			r := kratosnacos.New(client)
+			opts = append(opts, kratos.Registrar(r))
+		}
+	}
+
+	// 使用 Kratos 框架创建应用实例，配置上下文、ID、名称和服务器。
+	a := kratos.New(opts...)
 	return a
 }
 
