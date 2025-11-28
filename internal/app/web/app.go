@@ -12,6 +12,7 @@ import (
 	"syscall"
 
 	"github.com/go-kratos/kratos/v2"
+	kratoslog "github.com/go-kratos/kratos/v2/log"
 	"github.com/google/wire"
 
 	kitlog "github.com/fsyyft-go/kit/log"
@@ -26,6 +27,7 @@ import (
 // 包含了创建应用实例所需的所有依赖。
 var ProviderSet = wire.NewSet(
 	applog.NewLogger,
+	applog.NewKratosLogger,
 	newApp,
 )
 
@@ -40,16 +42,18 @@ var (
 // 参数：
 //   - ctx：请求上下文，用于取消与超时控制。
 //   - logger：日志记录器，用于记录应用生命周期事件。
+//   - kratosLogger：Kratos 日志记录器，用于记录应用生命周期事件。
 //   - hs：Web 服务器实例，用于处理 HTTP 请求。
 //
 // 返回值：
 //   - *kratos.App：配置好的 Kratos 应用实例。
-func newApp(ctx context.Context, logger kitlog.Logger, hs appserver.WebServer) *kratos.App {
+func newApp(ctx context.Context, logger kitlog.Logger, kratosLogger kratoslog.Logger, hs appserver.WebServer) *kratos.App {
 	// 使用 Kratos 框架创建应用实例，配置上下文、ID、名称和服务器。
 	a := kratos.New(
 		kratos.Context(ctx),
 		kratos.ID(id),
 		kratos.Name(name),
+		kratos.Logger(kratosLogger),
 		kratos.Server(
 			hs,
 		),
