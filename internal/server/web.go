@@ -9,7 +9,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	kratoserrors "github.com/go-kratos/kratos/v2/errors"
-	kratoslog "github.com/go-kratos/kratos/v2/log"
 	kratoslogging "github.com/go-kratos/kratos/v2/middleware/logging"
 	kratosmetrics "github.com/go-kratos/kratos/v2/middleware/metrics"
 	kratosratelimit "github.com/go-kratos/kratos/v2/middleware/ratelimit"
@@ -25,6 +24,12 @@ import (
 
 	apphelloworldv1 "github.com/fsyyft-go/kratos-layout/api/helloworld/v1"
 	appconf "github.com/fsyyft-go/kratos-layout/internal/pkg/conf"
+	applog "github.com/fsyyft-go/kratos-layout/internal/pkg/log"
+)
+
+var (
+	meterName         = "kratos-layout-web"
+	loggerFileldNamme = "kratos-web"
 )
 
 var (
@@ -43,8 +48,6 @@ type (
 		logger kitlog.Logger
 		// 应用配置。
 		conf *appconf.Config
-		// Kratos 日志记录器。
-		kratosLogger kratoslog.Logger
 		// 服务器实例。
 		server *kratoshttp.Server
 	}
@@ -54,7 +57,6 @@ type (
 //
 // 参数：
 //   - logger：日志记录器，用于服务日志记录。
-//   - kratosLogger：Kratos 日志记录器，用于记录应用生命周期事件。
 //   - conf：服务配置信息。
 //   - greeter：问候服务的 HTTP 处理器。
 //
@@ -62,7 +64,7 @@ type (
 //   - WebServer：配置好的 Web 服务器实例。
 //   - func()：清理函数。
 //   - error：初始化过程中可能发生的错误。
-func NewWebServer(logger kitlog.Logger, kratosLogger kratoslog.Logger, conf *appconf.Config,
+func NewWebServer(logger kitlog.Logger, conf *appconf.Config,
 	greeter apphelloworldv1.GreeterHTTPServer,
 ) (WebServer, func(), error) {
 	var err error
@@ -71,9 +73,8 @@ func NewWebServer(logger kitlog.Logger, kratosLogger kratoslog.Logger, conf *app
 	l := logger.WithField("ddd", "server").WithField("module", "web")
 
 	webServer := &webServer{
-		logger:       l,
-		kratosLogger: kratosLogger,
-		conf:         conf,
+		logger: l,
+		conf:   conf,
 	}
 
 	var exporter *otelprometheus.Exporter
@@ -86,7 +87,7 @@ func NewWebServer(logger kitlog.Logger, kratosLogger kratoslog.Logger, conf *app
 		otelmetric.WithReader(exporter),
 	)
 
-	meter := provider.Meter("app")
+	meter := provider.Meter(meterName)
 	metricRequests, err := kratosmetrics.DefaultRequestsCounter(meter, kratosmetrics.DefaultServerRequestsCounterName)
 	if err != nil {
 		panic(err)
@@ -96,12 +97,14 @@ func NewWebServer(logger kitlog.Logger, kratosLogger kratoslog.Logger, conf *app
 		panic(err)
 	}
 
+	kratosLoggerWeb := applog.NewKratosLogger(logger.WithField(loggerFileldNamme, ""))
+
 	webServer.server = kratoshttp.NewServer(
 		kratoshttp.Address(conf.GetServer().GetHttp().GetAddr()),
-		kratoshttp.Logger(kratosLogger),
+		kratoshttp.Logger(kratosLoggerWeb),
 		kratoshttp.Middleware(
-			kratosrecovery.Recovery(),          // 异常恢复：https://www.bookstack.cn/read/kratos-2.8-zh/b9e826c7bec1a4cb.md。
-			kratoslogging.Server(kratosLogger), // 日志记录：https://www.bookstack.cn/read/kratos-2.8-zh/14155bca8afb4099.md。
+			kratosrecovery.Recovery(),             // 异常恢复：https://www.bookstack.cn/read/kratos-2.8-zh/b9e826c7bec1a4cb.md。
+			kratoslogging.Server(kratosLoggerWeb), // 日志记录：https://www.bookstack.cn/read/kratos-2.8-zh/14155bca8afb4099.md。
 			kratosmetrics.Server( // 指标中间件：https://www.bookstack.cn/read/kratos-2.8-zh/4c2b93bf8331b052.md、https://github.com/go-kratos/examples/blob/main/metrics/main.go。
 				kratosmetrics.WithSeconds(metricSeconds),
 				kratosmetrics.WithRequests(metricRequests),
