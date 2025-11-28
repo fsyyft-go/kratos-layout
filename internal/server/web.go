@@ -8,8 +8,10 @@ import (
 	"context"
 
 	"github.com/gin-gonic/gin"
-	"github.com/go-kratos/kratos/v2/errors"
-	"github.com/go-kratos/kratos/v2/middleware/recovery"
+	kratoserrors "github.com/go-kratos/kratos/v2/errors"
+	kratoslog "github.com/go-kratos/kratos/v2/log"
+	kratoslogging "github.com/go-kratos/kratos/v2/middleware/logging"
+	kratosrecovery "github.com/go-kratos/kratos/v2/middleware/recovery"
 	kratoshttp "github.com/go-kratos/kratos/v2/transport/http"
 
 	kitkratosmiddlewarevalidate "github.com/fsyyft-go/kit/kratos/middleware/validate"
@@ -36,6 +38,8 @@ type (
 		logger kitlog.Logger
 		// 应用配置。
 		conf *appconf.Config
+		// Kratos 日志记录器。
+		kratosLogger kratoslog.Logger
 		// 服务器实例。
 		server *kratoshttp.Server
 	}
@@ -45,6 +49,7 @@ type (
 //
 // 参数：
 //   - logger：日志记录器，用于服务日志记录。
+//   - kratosLogger：Kratos 日志记录器，用于记录应用生命周期事件。
 //   - conf：服务配置信息。
 //   - greeter：问候服务的 HTTP 处理器。
 //
@@ -52,7 +57,7 @@ type (
 //   - WebServer：配置好的 Web 服务器实例。
 //   - func()：清理函数。
 //   - error：初始化过程中可能发生的错误。
-func NewWebServer(logger kitlog.Logger, conf *appconf.Config,
+func NewWebServer(logger kitlog.Logger, kratosLogger kratoslog.Logger, conf *appconf.Config,
 	greeter apphelloworldv1.GreeterHTTPServer,
 ) (WebServer, func(), error) {
 	var err error
@@ -61,16 +66,18 @@ func NewWebServer(logger kitlog.Logger, conf *appconf.Config,
 	l := logger.WithField("ddd", "server").WithField("module", "web")
 
 	webServer := &webServer{
-		logger: l,
-		conf:   conf,
+		logger:       l,
+		kratosLogger: kratosLogger,
+		conf:         conf,
 	}
 
 	webServer.server = kratoshttp.NewServer(
 		kratoshttp.Address(conf.GetServer().GetHttp().GetAddr()),
+		kratoshttp.Logger(kratosLogger),
 		kratoshttp.Middleware(
-			recovery.Recovery(),
+			kratosrecovery.Recovery(),
 			kitkratosmiddlewarevalidate.Validator(kitkratosmiddlewarevalidate.WithValidateCallback(webServer.validateCallback)),
-		),
+			kratoslogging.Server(kratosLogger)),
 	)
 
 	// 注册 HTTP 处理器。
@@ -128,5 +135,5 @@ func (s *webServer) validateCallback(_ context.Context, req interface{}, errVali
 	// 记录请求和验证错误信息。
 	s.logger.WithField("req", req).WithField("errValidate", errValidate).Info("validateCallback")
 	// 返回标准化的错误响应。
-	return nil, errors.BadRequest("VALIDATOR", "请求参数错误，详见日志")
+	return nil, kratoserrors.BadRequest("VALIDATOR", "请求参数错误，详见日志")
 }

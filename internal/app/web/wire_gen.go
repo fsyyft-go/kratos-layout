@@ -35,7 +35,7 @@ func wireWeb(ctx context.Context, conf *appconf.Config) (*kratos.App, func(), er
 	greeterRepo := appdata.NewGreeterRepo(logger, conf, dataData)
 	greeterUsecase := appbiz.NewGreeterUsecase(logger, conf, greeterRepo)
 	greeterHTTPServer := appservice.NewGreeterService(logger, conf, greeterUsecase)
-	webServer, cleanup3, err := appserver.NewWebServer(logger, conf, greeterHTTPServer)
+	webServer, cleanup3, err := appserver.NewWebServer(logger, kratosLogger, conf, greeterHTTPServer)
 	if err != nil {
 		cleanup2()
 		cleanup()
