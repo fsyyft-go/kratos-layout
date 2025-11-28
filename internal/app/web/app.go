@@ -11,6 +11,7 @@ import (
 	"strings"
 	"syscall"
 
+	"github.com/go-kratos/kratos/v2"
 	"github.com/google/wire"
 
 	// 模板：下面这条导入，应用时需要修改。
@@ -23,7 +24,24 @@ import (
 // 包含了创建应用实例所需的所有依赖。
 var ProviderSet = wire.NewSet(
 	applog.NewLogger,
+	newApp,
 )
+
+var (
+	name  = "kratos-layout"
+	id, _ = os.Hostname()
+)
+
+func newApp(hs appserver.WebServer) *kratos.App {
+	a := kratos.New(
+		kratos.ID(id),
+		kratos.Name(name),
+		kratos.Server(
+			hs,
+		),
+	)
+	return a
+}
 
 // Run 是 Web 应用的主入口。
 //
@@ -84,23 +102,18 @@ func run() {
 	}
 
 	// 创建可取消的 context，用于优雅关闭。
-	ctx, cancel := context.WithCancel(context.Background())
+	_, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	// 监听系统信号（SIGINT/SIGTERM），用于优雅关闭。
 	signalChan := make(chan os.Signal, 1)
 	signal.Notify(signalChan, syscall.SIGINT, syscall.SIGTERM)
 
-	var web appserver.WebServer
-
-	// 信号处理 goroutine，收到信号后调用 web.Stop 并取消 context。
+	// 信号处理 goroutine，收到信号后取消 context。
 	go func() {
 		sig := <-signalChan
 		fmt.Printf("接收到系统信号: %v\n", sig)
 		cancel()
-		if nil != web {
-			_ = web.Stop(ctx)
-		}
 	}()
 
 	// 通过 Wire 框架生成的 wireWeb 函数初始化服务。
@@ -109,9 +122,7 @@ func run() {
 		fmt.Printf("初始化失败：%v", err)
 		// 调用清理函数释放已分配的资源。
 		cleanup()
-	} else {
-		web = w
-		// 启动 Web 服务器。
-		_ = web.Start(ctx)
+	} else if err := w.Run(); err != nil {
+		panic(err)
 	}
 }
