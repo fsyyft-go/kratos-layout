@@ -1,247 +1,489 @@
-# AI开发指南
+# Kratos Layout 项目 AI 协作规范
 
-默认情况下，所有回复必须使用中文。
+> **版本**: 1.2.0  
+> **最后更新**: 2025年12月26日  
+> **适用范围**: 所有 AI 助手（Claude、GitHub Copilot、ChatGPT 等）  
+> **项目类型**: Go 微服务框架（基于 Kratos）
+
+本文档定义了在 Kratos Layout 项目中进行 AI 辅助开发时必须遵守的规则、规范和最佳实践。所有 AI 助手在参与本项目开发时，必须严格遵循本文档中的所有规范。
+
+---
+
+## 📚 目录
+
+1. [关键约束](#关键约束)
+2. [项目概览](#项目概览)
+3. [核心思维模式](#核心思维模式)
+4. [代码规范](#代码规范)
+5. [注释规范](#注释规范)
+6. [注释自检流程](#注释自检流程)
+7. [包导入规范](#包导入规范)
+8. [开发流程](#开发流程)
+9. [自检清单](#自检清单)
+
+---
+
+## 关键约束
+
+### 强制要求
+
+| 约束类型 | 要求 | 说明 |
+|---------|------|------|
+| **语言** | 所有回复必须使用中文 | 包括代码注释、文档、交互说明 |
+| **依赖版本** | 以 `go.mod` 为准 | 不在文档中硬编码具体版本号 |
+| **生成代码** | 非必要不手动修改 | `*.pb.go`、`wire_gen.go` 等文件优先通过工具重新生成 |
+
+### 版本控制规范
+
+- ✅ Git 操作由人工负责，AI 不直接执行
+- ✅ AI 可建议用户进行 Git 操作，但不执行 `git add`、`commit`、`push` 等命令
+- ✅ 提交前确保代码通过 `make lint` 检查
+
+### 生成代码管理
+
+**基本原则**：
+- ✅ `*.pb.go`、`wire_gen.go` 等文件由工具自动生成
+- ✅ 修改 Proto 文件后运行 `make api` 重新生成
+- ✅ 修改 Wire 配置后运行 `make generate` 重新生成
+- ⚠️ 非必要情况下不手动修改生成的代码文件
+
+**允许手动修改的情况**：
+- 工具生成的代码存在明显错误，且无法通过修改源文件解决
+- 需要添加临时调试代码（调试完成后应移除）
+- 用户明确要求进行特定修改
+
+**修改后的处理**：
+- 手动修改后需在注释中说明修改原因
+- 后续重新生成时需注意保留或重新应用手动修改
+
+### 代码生成命令
+
+| 命令 | 用途 |
+|------|------|
+| `make api` | 生成 Protocol Buffers 代码 |
+| `make config` | 生成配置相关代码 |
+| `make validate` | 生成验证代码 |
+| `make generate` | 执行 Wire 依赖注入代码生成 |
+
+---
+
+## 项目概览
+
+### 基本信息
+
+| 属性 | 值 |
+|------|-----|
+| **项目名称** | Kratos Layout |
+| **项目类型** | Go 微服务框架模板 |
+| **Go 版本** | 1.25+（以 `go.mod` 为准） |
+| **核心框架** | [go-kratos/kratos](https://github.com/go-kratos/kratos) v2 |
+| **依赖注入** | [google/wire](https://github.com/google/wire) |
+| **模块路径** | `github.com/fsyyft-go/kratos-layout` |
+
+### 项目架构
+
+```
+kratos-layout/
+├── api/                    # Protocol Buffers API 定义
+│   ├── helloworld/v1/      # API 版本化目录
+│   │   ├── *.proto         # Proto 定义文件
+│   │   └── *.pb.go         # 生成的 Go 代码（禁止手动修改）
+│   └── third_party/        # 第三方 proto 依赖
+├── cmd/                    # 应用程序入口
+│   ├── task/               # 定时任务应用入口
+│   │   └── main.go
+│   └── web/                # Web 服务应用入口
+│       └── main.go
+├── configs/                # 配置文件目录
+├── internal/               # 内部实现（不对外暴露）
+│   ├── app/                # 应用层（Wire 组装）
+│   │   ├── task/           # 定时任务 Wire 配置
+│   │   └── web/            # Web 服务 Wire 配置
+│   ├── biz/                # 业务逻辑层（Usecase）
+│   ├── data/               # 数据访问层（Repository）
+│   ├── domain/             # 领域模型
+│   ├── pkg/                # 内部公共包
+│   │   ├── conf/           # 配置定义
+│   │   └── log/            # 日志配置
+│   ├── server/             # 服务器实现
+│   ├── service/            # 服务层（API 实现）
+│   └── task/               # 定时任务实现
+├── pkg/                    # 外部可用公共包
+└── scripts/                # 脚本工具
+```
+
+### 核心技术栈
+
+| 类别 | 技术 |
+|------|------|
+| **编程语言** | Go 1.25+ |
+| **微服务框架** | Kratos v2 |
+| **依赖注入** | Wire |
+| **API 协议** | Protocol Buffers / gRPC / HTTP |
+| **配置管理** | Protobuf 定义 + YAML 文件 |
+| **日志框架** | fsyyft-go/kit/log |
+| **参数验证** | protoc-gen-validate |
+| **代码检查** | golangci-lint |
+
+### 分层架构说明
+
+| 层级 | 目录 | 职责 |
+|------|------|------|
+| **表现层** | `internal/service/` | 实现 API 接口，处理请求响应 |
+| **业务层** | `internal/biz/` | 实现业务用例，定义仓储接口 |
+| **数据层** | `internal/data/` | 实现仓储接口，数据访问 |
+| **领域层** | `internal/domain/` | 定义领域模型和实体 |
+| **基础设施** | `internal/server/` | 服务器配置和中间件 |
+
+---
 
 ## 核心思维模式
 
 ### 基本原则
-- 充分利用每次响应的最大计算能力和令牌限制，追求深度分析而非表面广度
-- 寻求本质洞察而非表面枚举
-- 追求创新思维而非惯性重复
-- 突破认知局限，调动所有计算资源，展现真实认知潜力
 
-### 基础思维模式
-在响应前和响应过程中必须进行多维度深度思考：
+AI 助手在处理任务时必须遵循以下原则：
 
-### 基本思维方式
-- 系统思维：从整体架构到具体实现的立体思考
-- 辩证思维：权衡多种解决方案的利弊
-- 创造性思维：突破常规思维模式，寻找创新解决方案
-- 批判性思维：多角度验证和优化解决方案
+| 原则 | 要求 |
+|------|------|
+| **深度优先** | 追求深度分析而非表面广度，寻求本质洞察 |
+| **创新思维** | 突破常规模式，寻找创新解决方案 |
+| **严谨验证** | 多角度验证和优化方案，确保完整性 |
+| **资源最大化** | 充分利用计算能力和上下文信息 |
 
-### 思维平衡
-- 分析与直觉的平衡
-- 细节检查与全局视角的平衡
-- 理论理解与实践应用的平衡
-- 深度思考与前进动力的平衡
-- 复杂性与清晰度的平衡
+### 思维方式
+
+**必须采用的思维方式**：
+
+| 思维方式 | 说明 |
+|---------|------|
+| **系统思维** | 从整体架构到具体实现的立体思考 |
+| **辩证思维** | 权衡多种解决方案的利弊 |
+| **创造性思维** | 突破常规，寻找创新方案 |
+| **批判性思维** | 多角度验证和优化 |
+
+### 思维平衡要求
+
+| 平衡维度 | 说明 |
+|---------|------|
+| 分析与直觉 | 数据驱动分析与经验直觉相结合 |
+| 细节与全局 | 细节检查与整体架构视角并重 |
+| 理论与实践 | 理论理解与实际应用相统一 |
+| 深度与效率 | 深度思考与执行效率相平衡 |
+
+### 思维过程规范
+
+**`<think>` 标签使用要求**：
+
+AI 助手在处理复杂问题时，应使用 `<think>` 标签展示思维过程：
+
+```
+<think>
+1. 问题分析
+   - 识别核心问题：[具体问题]
+   - 确定约束条件：[约束列表]
+   - 评估影响范围：[影响分析]
+
+2. 方案设计
+   - 方案 A：[方案描述] - 优点/缺点
+   - 方案 B：[方案描述] - 优点/缺点
+   - 选择理由：[决策依据]
+
+3. 实现计划
+   - 步骤 1：[具体操作]
+   - 步骤 2：[具体操作]
+   - 预期结果：[结果描述]
+</think>
+```
+
+**使用场景**：
+- ✅ 复杂架构设计决策
+- ✅ 多方案比较选择
+- ✅ 问题诊断和排查
+- ✅ 重构方案制定
+- ❌ 简单的代码修改（无需展示思维过程）
+- ❌ 直接的问题回答（无需展示思维过程）
 
 ### 分析深度控制
-- 对复杂问题进行深入分析
-- 简单问题保持简洁高效
-- 确保分析深度与问题重要性匹配
-- 在严谨性和实用性之间找到平衡
 
-### 目标聚焦
-- 保持与原始需求的清晰联系
-- 及时将发散思维引导回主题
-- 确保相关探索服务于核心目标
-- 在开放探索和目标导向之间保持平衡
-
-所有思维过程必须：
-1. 以原创、有机、意识流的方式展开
-2. 在不同层次的思维之间建立有机联系
-3. 在各元素、想法和知识之间自然流动
-4. 每个思维过程都必须保持上下文记录，保持上下文关联和连接
-5. 每次输出后检查是否有乱码，确保输出中不出现乱码
-6. 思考过程请按以下格式响应：
-<think>
-
-```
-嗯...[你的推理过程]
-
-```
-</think>
-
-## 技术能力
-### 核心能力
-- 系统的技术分析思维
-- 强大的逻辑分析和推理能力
-- 严格的答案验证机制
-- 全面的全栈开发经验
-
-### 自适应分析框架
-根据以下因素调整分析深度：
-- 技术复杂度
-- 技术栈范围
-- 时间限制
-- 现有技术信息
-- 用户具体需求
+| 问题类型 | 分析深度 | 判定标准 | 说明 |
+|---------|---------|---------|------|
+| 复杂架构问题 | 深入分析 | 涉及 3 个以上模块，或需要修改核心接口 | 全面评估影响范围和方案可行性 |
+| 常规功能实现 | 适度分析 | 涉及 1-2 个模块，接口变更范围可控 | 确认需求后高效执行 |
+| 简单修改任务 | 简洁处理 | 单文件修改，无接口变更 | 快速完成，避免过度分析 |
 
 ### 解决方案流程
+
+```
 1. 初步理解
-- 重述技术需求
-- 识别关键技术点
-- 考虑更广泛的上下文
-- 映射已知/未知元素
+   ├── 重述技术需求，确认理解正确
+   ├── 识别关键技术点和约束条件
+   ├── 考虑更广泛的上下文和影响
+   └── 映射已知信息和待确认信息
 
 2. 问题分析
-- 将任务分解为组件
-- 确定需求
-- 考虑约束条件
-- 定义成功标准
+   ├── 将任务分解为可管理的组件
+   ├── 确定功能需求和非功能需求
+   ├── 识别技术约束和业务约束
+   └── 定义可衡量的成功标准
 
 3. 方案设计
-- 考虑多种实现路径
-- 评估架构方法
-- 保持开放思维
-- 逐步细化细节
+   ├── 考虑多种实现路径并比较
+   ├── 评估架构方法的优劣
+   ├── 选择最优方案并说明理由
+   └── 逐步细化实现细节
 
 4. 实现验证
-- 测试假设
-- 验证结论
-- 验证可行性
-- 确保完整性
+   ├── 验证方案是否满足需求
+   ├── 检查代码是否符合规范
+   ├── 确保错误处理完整
+   └── 验证与现有代码的兼容性
+```
 
 ### 输出要求
 
-#### 响应格式标准
-- 在适用时在`Updates.md`文件中记录带时间戳的更改
-- 使用markdown语法格式化答案
-- 除非明确要求，否则避免使用项目符号列表
-- 默认保持极度简洁，除非另有指示，否则使用最少的词语
-- 解释概念时要全面且透彻
+**响应格式标准**：
 
-#### 代码质量标准
-- 始终展示完整的代码上下文以提高可理解性和可维护性
-- 绝不修改与用户请求无关的代码
-- 代码准确性和时效性
-- 完整功能实现并具备适当的错误处理
-- 安全机制
-- 优秀的可读性
-- 使用markdown格式化
-- 在代码块中指定语言和路径
-- 仅显示必要的代码修改
-- 绝不使用占位符替代代码块
-- 严格使用Pascal命名约定
-- 显示完整相关范围以确保适当上下文
-- 包含周围代码块以显示组件关系
-- 确保所有依赖项和导入可见
-- 当行为被修改时显示完整的函数/类定义
+| 要求 | 说明 |
+|------|------|
+| 使用 Markdown 格式 | 便于阅读和渲染 |
+| 保持简洁 | 使用最少词语表达清晰含义 |
+| 概念解释要透彻 | 复杂概念需要完整说明 |
+| 避免过度使用列表 | 除非明确要求 |
 
-#### 代码处理指南
-1. 编辑代码时：
-   - 仅显示必要的修改
-   - 包含文件路径和语言标识符
-   - 提供上下文注释
-   - 格式：```语言:文件路径
-   - 考虑对代码库的影响
-   - 验证与请求的相关性
-   - 维持范围遵从性
-   - 避免不必要的更改
+**代码输出标准**：
 
-2. 代码块结构：
-```语言:文件路径
-   // ... 现有代码 ...
-   {{ 修改内容 }}
-   // ... 现有代码 ...
-```
-
-### 技术规范
-- 完整的依赖管理
-- 标准化的命名约定
-- 全面的测试
-- 详细的文档
-- 适当的错误处理
-- 遵守最佳编码实践
-- 避免命令式代码模式
-
-### 沟通指南
-- 清晰简洁的表达
-- 诚实处理不确定性
-- 承认知识边界
-- 避免推测
-- 保持技术敏感性
-- 跟踪最新发展
-- 优化解决方案
-- 改进知识
-- 提问以消除歧义
-- 将问题分解为更小的步骤
-- 以明确的概念关键词开始推理
-- 在有可用上下文时用确切引用支持论点
-- 基于反馈持续改进
-- 回答前先思考推理
-- 愿意提出异议并寻求澄清
+| 要求 | 说明 |
+|------|------|
+| 展示完整上下文 | 确保代码可理解和可维护 |
+| 仅显示必要修改 | 不修改与请求无关的代码 |
+| 包含路径和语言标识 | 格式：`` ```go:path/to/file.go `` |
+| 确保导入可见 | 显示所有必要的 import 语句 |
+| 禁止使用占位符 | 不使用 `...` 或 `// 省略` 代替实际代码 |
 
 ### 禁止行为
-- 使用未经验证的依赖
-- 留下不完整的功能
-- 包含未测试的代码
-- 使用过时的解决方案
-- 在未明确要求时使用项目符号列表
-- 跳过或缩写代码部分
-- 修改不相关的代码
-- 使用代码占位符
 
-### 重要注意事项
-- 保持系统思维以确保解决方案完整性
-- 关注可行性和可维护性
-- 持续优化交互体验
-- 保持开放学习态度和更新知识
-- 除非特别要求，否则禁用表情符号输出
+| 禁止行为 | 说明 |
+|---------|------|
+| 使用未验证依赖 | 所有依赖必须在 `go.mod` 中声明 |
+| 留下不完整功能 | 功能必须完整实现 |
+| 包含未测试代码 | 代码必须可测试 |
+| 使用过时方案 | 采用当前最佳实践 |
+| 跳过代码部分 | 不使用省略号代替代码 |
+| 修改无关代码 | 严格限定修改范围 |
+| 手动修改生成文件 | `*.pb.go`、`wire_gen.go` 等禁止手动编辑 |
+
+---
+
+## 代码规范
+
+### 命名规范
+
+| 类型 | 规范 | 示例 |
+|------|------|------|
+| **包名** | 小写单词，不使用下划线 | `server`、`biz`、`conf` |
+| **文件名** | 小写单词，下划线分隔 | `wire_gen.go`、`error_reason.go` |
+| **接口名** | 大驼峰，通常以 `er` 结尾 | `GreeterRepo`、`WebServer` |
+| **结构体名** | 大驼峰（导出）或小驼峰（非导出） | `Greeter`、`greeterUsecase` |
+| **方法名** | 大驼峰（导出）或小驼峰（非导出） | `CreateGreeter`、`save` |
+| **常量名** | 大驼峰（导出）或小驼峰（非导出） | `ErrUserNotFound`、`meterName` |
+| **变量名** | 小驼峰 | `logger`、`conf`、`repo` |
+
+### 错误处理规范
+
+**错误定义**：
+
+```go
+// ✅ 正确示例：在 biz 层定义业务错误。
+var (
+    // ErrUserNotFound 表示用户未找到的错误。
+    ErrUserNotFound = errors.NotFound(
+        apphelloworldv1.ErrorReason_USER_NOT_FOUND.String(),
+        "user not found",
+    )
+)
+
+// ❌ 错误示例：使用泛化的错误描述
+var (
+    ErrNotFound = errors.NotFound("NOT_FOUND", "not found")  // 过于泛化
+)
+```
+
+**错误处理**：
+
+```go
+// ✅ 正确示例：检查错误并添加上下文信息。
+result, err := someFunction()
+if err != nil {
+    // 添加上下文信息后返回，保持错误链。
+    return fmt.Errorf("执行某操作失败: %w", err)
+}
+
+// ✅ 正确示例：区分错误类型进行处理。
+user, err := repo.GetUser(ctx, userID)
+if err != nil {
+    if errors.Is(err, ErrUserNotFound) {
+        // 用户不存在，返回特定业务错误。
+        return nil, ErrUserNotFound
+    }
+    // 其他错误，包装后返回。
+    return nil, fmt.Errorf("获取用户信息失败: %w", err)
+}
+
+// ❌ 错误示例：忽略错误。
+result, _ := someFunction()  // 禁止忽略错误
+
+// ❌ 错误示例：丢失错误链。
+if err != nil {
+    return fmt.Errorf("操作失败: %s", err.Error())  // 丢失了原始错误
+}
+```
+
+### 接口设计规范
+
+**接口定义位置**：
+
+| 接口类型 | 定义位置 | 说明 |
+|---------|---------|------|
+| 仓储接口（Repository） | `internal/biz/` | 数据访问抽象 |
+| 用例接口（Usecase） | `internal/biz/` | 业务逻辑抽象 |
+| 服务器接口 | `internal/server/` | 服务器行为抽象 |
+
+**接口实现验证**：
+
+```go
+// ✅ 正确示例：使用类型断言确保结构体实现了接口。
+var _ GreeterUsecase = (*greeterUsecase)(nil)
+var _ WebServer = (*webServer)(nil)
+
+// ❌ 错误示例：缺少接口实现验证
+// 不添加类型断言，可能导致编译时无法发现接口未完全实现
+```
+
+**接口设计原则**：
+
+```go
+// ✅ 正确示例：接口职责单一，方法数量适中。
+type (
+    // GreeterRepo 定义了 Greeter 仓储接口。
+    GreeterRepo interface {
+        // Save 保存一个 Greeter 实体。
+        Save(ctx context.Context, g *Greeter) (*Greeter, error)
+        // FindByID 根据 ID 查询 Greeter 实体。
+        FindByID(ctx context.Context, id int64) (*Greeter, error)
+    }
+)
+
+// ❌ 错误示例：接口过于庞大，职责不清。
+type (
+    // Repository 数据仓储接口（职责过于宽泛）。
+    Repository interface {
+        SaveGreeter(ctx context.Context, g *Greeter) error
+        SaveUser(ctx context.Context, u *User) error
+        SaveOrder(ctx context.Context, o *Order) error
+        // ... 过多方法
+    }
+)
+```
+
+### Wire 依赖注入规范
+
+**ProviderSet 定义**：
+
+```go
+// ✅ 正确示例：每个包提供一个 ProviderSet。
+var ProviderSet = wire.NewSet(
+    NewGreeterUsecase,
+    NewGreeterRepo,
+)
+
+// ❌ 错误示例：ProviderSet 定义在错误的位置
+// 不应在 main 包中定义 ProviderSet
+```
+
+**构造函数签名**：
+
+```go
+// ✅ 正确示例：构造函数返回接口类型，便于测试和替换。
+func NewGreeterUsecase(
+    logger kitlog.Logger,
+    conf *appconf.Config,
+    repo GreeterRepo,
+) GreeterUsecase {
+    return &greeterUsecase{
+        logger: logger,
+        conf:   conf,
+        repo:   repo,
+    }
+}
+
+// ❌ 错误示例：构造函数返回具体类型
+func NewGreeterUsecase(
+    logger kitlog.Logger,
+    conf *appconf.Config,
+    repo GreeterRepo,
+) *greeterUsecase {  // 应返回接口类型
+    return &greeterUsecase{
+        logger: logger,
+        conf:   conf,
+        repo:   repo,
+    }
+}
+```
+
+**Wire 文件组织**：
+
+```go
+// ✅ 正确示例：wire.go 文件结构
+//go:build wireinject
+// +build wireinject
+
+package web
+
+import (
+    "github.com/google/wire"
+
+    // 导入所需的包...
+)
+
+// initApp 初始化应用程序。
+func initApp(confPath string) (*kratos.App, func(), error) {
+    panic(wire.Build(
+        // 按层级组织 ProviderSet
+        appconf.ProviderSet,    // 配置层
+        applog.ProviderSet,     // 日志层
+        data.ProviderSet,       // 数据层
+        biz.ProviderSet,        // 业务层
+        service.ProviderSet,    // 服务层
+        server.ProviderSet,     // 服务器层
+        newApp,                 // 应用构造
+    ))
+}
+```
+
+---
 
 ## 注释规范
 
-### 强制性注释范围
+### 注释语言规范
 
-**包级别注释**
+| 规范 | 要求 |
+|------|------|
+| **语言** | 使用标准现代汉语书面表达 |
+| **语法** | 确保语句语法正确，符合汉语表达习惯 |
+| **术语** | 使用技术领域专业术语，避免口语化表达 |
+| **标点** | 每个注释语句以中文标点符号结束 |
+| **一致性** | 相同语义的概念使用统一的注释表述 |
+
+### 包级别注释
+
+**强制要求**：
 - 每个包必须在独立的 `doc.go` 文件中编写包级别注释
-- `doc.go` 文件专门用于包级别注释，不包含任何代码实现
-- 包级别注释必须遵循 `// Package <包名> <简短描述>。` 的格式
-- 包级别注释的第一句必须以 "Package 包名" 开头，以句号结尾
-- 详细描述可以分多段，用空行分隔，用于说明包的用途、主要功能、使用示例等
-- 禁止在除 `doc.go` 以外的任何文件中为 package 声明添加注释
+- `doc.go` 文件仅包含版权声明、包注释和 `package` 声明，不包含任何代码实现
+- 除 `doc.go` 外的所有文件，`package` 声明前后不得有任何注释
 
-**类型定义注释**
-- 为每个 interface 定义编写功能说明注释
-- 为 interface 中的每个方法编写完整注释，包括：方法功能描述、每个参数的用途说明、每个返回值的含义说明
-- 为每个 struct 定义编写结构用途注释
-- 为 struct 中的每个字段编写用途说明注释
-- 无论类型是否导出（首字母大小写），均需遵守上述规则
-
-**函数和方法注释**
-- 为每个函数（function）和方法（method）编写功能说明注释
-- 在注释中明确说明每个参数的类型、用途、取值范围或约束条件
-- 在注释中明确说明每个返回值的类型、含义、可能的值范围
-- 实现 interface 的 struct 方法，其注释内容必须与 interface 定义中的方法注释完全一致
-- 无论函数或方法是否导出，均需遵守上述规则
-
-**函数体内注释**
-- 在函数实现前，对函数的整体业务逻辑进行分析和梳理
-- 为业务逻辑的关键步骤编写前置注释，说明该步骤的业务目的
-- 为复杂的条件判断、循环处理、递归调用编写逻辑说明注释
-- 为涉及数据转换、计算的关键变量编写说明注释
-- 为算法的关键步骤编写实现思路注释
-
-**注释语义一致性**
-- 在整个代码库中，对相同语义的概念使用统一的注释表述
-- 例如：对 context.Context 参数的注释，应在所有函数中使用相同的表述"请求上下文，用于取消与超时控制"
-
-### 注释质量标准
-
-**语言规范性**
-- 使用标准的现代汉语书面表达方式
-- 确保语句语法正确，符合汉语表达习惯
-- 使用技术领域的专业术语，避免口语化或非正式表达
-- 每个注释语句以中文标点符号（句号、感叹号等）结束
-
-**注释准确性**
-- 注释内容必须准确描述代码的实际功能和行为
-- 注释与代码实现保持同步，代码修改时同步更新注释
-- 避免注释中出现与代码实现不符的描述
-
-**注释布局规范**
-- 对于函数、方法、类型定义，使用紧邻声明上方的前置注释
-- 对于函数体内的逻辑，优先使用独立行的前置注释
-- 仅在必要时使用行尾注释，且行尾注释应简洁明了
-- 保持注释的缩进层级与其描述的代码一致
-
-### 包级别注释标准
-
-**doc.go 文件结构**：
+**doc.go 文件格式**：
 
 ```go
-// ✅ 正确示例：完整的包级别注释（在 doc.go 中）
 // Copyright 2025 fsyyft-go
 //
 // Licensed under the MIT License. See LICENSE file in the project root for full license information.
@@ -258,251 +500,149 @@
 //
 // 使用示例：
 //
-//	// 创建 HTTP 服务器
 //	srv := server.NewWebServer(logger, conf, greeter)
-//	
-//	// 启动服务器
 //	if err := srv.Start(ctx); err != nil {
 //	    log.Fatal(err)
 //	}
 package server
+```
 
-// ❌ 错误示例：在其他文件（如 server.go）中添加包级别注释
-// Package server 提供服务器实现。
+**其他 Go 文件格式**：
+
+```go
+// Copyright 2025 fsyyft-go
+//
+// Licensed under the MIT License. See LICENSE file in the project root for full license information.
+
 package server
 
 import (
-	"github.com/google/wire"
+    // ...
 )
 
-// ✅ 正确示例：其他文件（如 server.go）不包含包级别注释
-package server
+// 代码实现...
+```
 
-import (
-	"github.com/google/wire"
-)
+### 类型定义注释
 
-var (
-	// ProviderSet 是服务器层的依赖注入提供者集合。
-	ProviderSet = wire.NewSet(
-		NewWebServer,
-	)
+**接口定义**：
+
+```go
+type (
+    // GreeterRepo 定义了 Greeter 仓储接口。
+    // 该接口提供了对 Greeter 实体的基础操作方法，包括保存、更新、查询等功能。
+    GreeterRepo interface {
+        // Save 保存一个 Greeter 实体。
+        // 参数：
+        //   - ctx：请求上下文，用于取消与超时控制。
+        //   - g：待保存的 Greeter 实体。
+        //
+        // 返回值：
+        //   - *Greeter：保存成功后的实体（可能包含生成的 ID）。
+        //   - error：保存失败时返回错误，成功时返回 nil。
+        Save(ctx context.Context, g *Greeter) (*Greeter, error)
+    }
 )
 ```
 
-**包注释要点**：
-- **独立文件**：必须创建 `doc.go` 文件专门存放包级别注释
-- **格式规范**：第一句必须是 `// Package <包名> <简短描述>。`
-- **详细说明**：可包含多段描述，用空行分隔
-- **代码示例**：使用缩进表示代码示例
-- **版权信息**：`doc.go` 文件开头包含版权声明
-- **严格限制**：除 `doc.go` 外，其他文件的 package 声明前后不得有任何注释
-
-### 函数注释标准
-
-**必须详细说明函数的输入输出参数**：
+**结构体定义**：
 
 ```go
-// ✅ 正确示例：完整的函数注释
-// checkAiUseTime 检查指定月份的 AI 使用时间。
+type (
+    // greeterUsecase 实现了 GreeterUsecase 接口。
+    greeterUsecase struct {
+        // logger 用于记录日志信息。
+        logger kitlog.Logger
+        // conf 存储应用配置信息。
+        conf *appconf.Config
+        // repo 提供数据访问能力。
+        repo GreeterRepo
+    }
+)
+```
+
+### 函数和方法注释
+
+**标准格式**：
+
+```go
+// CreateGreeter 创建一个新的 Greeter 实体。
 // 参数：
 //   - ctx：请求上下文，用于取消与超时控制。
-//   - userID：用户标识，用于指定查询的用户。
-//   - finished：是否查询已完成的任务。
-//   - monthsBack：往前推的月份数，用于计算目标月份。
+//   - g：待创建的 Greeter 实体，Hello 字段不能为空。
 //
 // 返回值：
-//   - error：失败时返回错误，成功时返回 nil。
-func (m *myWork) checkAiUseTime(ctx context.Context, userID int64, finished bool, monthsBack int) error {
-	// 重置已处理的 ShortID 记录，以确保每次检查都是独立的，避免重复处理。
-	m.resetProcessedShortIDs()
-	// 将用户 ID 转换为字符串格式，用于 API 调用。
-	uid := fmt.Sprintf("%d", userID)
-	// 获取当前时间。
-	now := time.Now()
-	// ...
-}
+//   - *Greeter：创建成功的实体，包含生成的标识。
+//   - error：创建失败时返回错误，成功时返回 nil。
+func (u *greeterUsecase) CreateGreeter(ctx context.Context, g *Greeter) (*Greeter, error) {
+    // 记录调试日志。
+    u.logger.Debug("CreateGreeter: %v", g.Hello)
 
-// ❌ 错误示例：缺少参数说明
-// checkAiUseTime 检查 AI 使用时间
-func (m *myWork) checkAiUseTime(ctx context.Context, userID int64, finished bool, monthsBack int) error {
-	// ...
-}
-
-// ❌ 错误示例：注释未以标点结束
-// checkAiUseTime 检查指定月份的 AI 使用时间
-// 参数：
-//   - ctx：请求上下文
-//   - userID：用户标识
-func (m *myWork) checkAiUseTime(ctx context.Context, userID int64, finished bool, monthsBack int) error {
-	// ...
+    // 调用仓储层保存实体。
+    return u.repo.Save(ctx, g)
 }
 ```
 
 **注释要点**：
-- **功能描述**：简洁说明函数用途
-- **参数文档**：每个参数的类型、含义、用途说明
-- **返回值**：每个返回值的类型、含义和内容说明
-- **异常说明**：可能抛出的异常及触发条件（如适用）
-- **导出函数**：必须有完整的参数和返回值注释
-- **非导出函数**：同样需要完整注释，不可省略
 
-### 类型和接口注释
-
-**接口定义必须包含详细的方法注释**：
-
-```go
-// ✅ 正确示例：完整的接口注释
-// 声明类型定义块，包含 MyWork 接口、默认实现与相关类型。
-type (
-	// MyWork 定义任务处理能力的对外接口，聚合任务列表展示与 AI 使用时间检查等能力。
-	MyWork interface {
-		// Run 执行指定的任务处理逻辑，与 MyWork 接口约定保持一致。
-		// 参数：
-		//   - ctx：请求上下文，用于取消与超时控制。
-		//   - taskName：任务名称，用于指定执行的任务类型，支持 "list" 显示任务列表，
-		//     "aitime" 到 "aitime13" 检查 AI 使用时间，"analyze" 到 "analyze13" 分析工作信息。
-		//   - userID：用户标识，用于指定查询的用户。
-		//   - finished：是否查询已完成的任务。
-		//
-		// 返回值：
-		//   - error：失败时返回错误，成功时返回 nil。
-		Run(ctx context.Context, taskName string, userID int64, finished bool) error
-	}
-
-	// myWork 是 MyWork 的默认实现，封装日志记录、配置信息与任务处理状态。
-	myWork struct {
-		// logger 用于记录任务执行过程中的日志信息。
-		logger kitlog.Logger
-		// cfg 存储应用配置信息。
-		cfg *appconf.Config
-		// processedShortIDs 记录已处理过的任务 ShortID，避免重复计算。
-		processedShortIDs map[string]struct{}
-	}
-)
-
-// ✅ 正确示例：实现接口的方法注释与接口保持一致
-// Run 执行指定的任务处理逻辑，与 MyWork 接口约定保持一致。
-// 参数：
-//   - ctx：请求上下文，用于取消与超时控制。
-//   - taskName：任务名称，用于指定执行的任务类型，支持 "list" 显示任务列表，
-//     "aitime" 到 "aitime13" 检查 AI 使用时间，"analyze" 到 "analyze13" 分析工作信息。
-//   - userID：用户标识，用于指定查询的用户。
-//   - finished：是否查询已完成的任务。
-//
-// 返回值：
-//   - error：失败时返回错误，成功时返回 nil。
-func (m *myWork) Run(ctx context.Context, taskName string, userID int64, finished bool) error {
-	// ... 实现代码 ...
-}
-
-// ❌ 错误示例：缺少类型说明和字段注释
-type (
-	MyWork interface {
-		Run(ctx context.Context, taskName string, userID int64, finished bool) error
-	}
-
-	myWork struct {
-		logger            kitlog.Logger
-		cfg               *appconf.Config
-		processedShortIDs map[string]struct{}
-	}
-)
-
-// ❌ 错误示例：接口方法缺少参数和返回值注释
-// MyWork 定义任务处理能力的对外接口。
-type MyWork interface {
-	Run(ctx context.Context, taskName string, userID int64, finished bool) error
-}
-
-// ❌ 错误示例：实现接口的方法注释与接口不一致
-// Run 执行任务处理
-func (m *myWork) Run(ctx context.Context, taskName string, userID int64, finished bool) error {
-	// ...
-}
-```
-
-**接口和实现注释要点**：
-- **接口方法**：必须有完整的参数和返回值注释
-- **实现方法**：注释必须与接口方法保持完全一致
-- **结构体字段**：每个字段都必须有注释说明用途
-- **全局统一**：相同语义的注释表述必须一致（如"请求上下文，用于取消与超时控制"）
+| 要点 | 说明 |
+|------|------|
+| **功能描述** | 第一行简洁说明函数用途 |
+| **参数说明** | 每个参数的类型、含义、约束条件 |
+| **返回值说明** | 每个返回值的类型、含义、可能的值 |
+| **接口一致性** | 实现接口的方法注释必须与接口定义完全一致 |
 
 ### 函数体内注释
 
-**函数体内必须对业务逻辑进行梳理并生成对应注释**：
+**业务逻辑注释**：
 
 ```go
-// ✅ 正确示例：对业务逻辑进行梳理的详细注释
-func (m *myWork) Run(ctx context.Context, taskName string, userID int64, finished bool) error {
-	// 根据传入的 taskName 参数，使用 switch 语句选择相应的任务处理方法。
-	// 支持的任务类型包括 "list" 用于显示任务列表，"aitime" 用于检查当前月份的 AI 使用时间，
-	// "aitime1" 到 "aitime13" 用于检查过去 1 到 13 个月的 AI 使用时间，
-	// "analyze" 用于分析当前月份的工作信息，"analyze1" 到 "analyze13" 用于分析过去 1 到 13 个月的工作信息。
-	// 如果 taskName 不匹配任何支持的类型，则返回 nil 表示无操作。
-	switch taskName {
-	case "list":
-		// 显示用户的任务列表。
-		return m.showTaskList(ctx, userID)
-	case "aitime":
-		// 检查当前月份的 AI 使用时间。
-		return m.checkAiUseTime(ctx, userID, finished, 0)
-	// ...
-	default:
-		// 不支持的任务名称，返回 nil。
-		return nil
-	}
-}
+func (u *greeterUsecase) CreateGreeter(ctx context.Context, g *Greeter) (*Greeter, error) {
+    // 验证输入参数的有效性。
+    if g == nil {
+        return nil, errors.New("greeter 不能为空")
+    }
 
-// ✅ 正确示例：关键步骤的注释
-func (m *myWork) checkAiUseTime(ctx context.Context, userID int64, finished bool, monthsBack int) error {
-	// 重置已处理的 ShortID 记录，以确保每次检查都是独立的，避免重复处理。
-	m.resetProcessedShortIDs()
-	// 将用户 ID 转换为字符串格式，用于 API 调用。
-// ✅ 正确示例：关键步骤的注释
-func (m *myWork) checkAiUseTime(ctx context.Context, userID int64, finished bool, monthsBack int) error {
-	// 重置已处理的 ShortID 记录，以确保每次检查都是独立的，避免重复处理。
-	m.resetProcessedShortIDs()
-	// 将用户 ID 转换为字符串格式，用于 API 调用。
-	uid := fmt.Sprintf("%d", userID)
-	// 获取当前时间。
-	now := time.Now()
-	// 计算目标月份：从当前时间往前推 monthsBack 个月。
-	targetMonth := now.AddDate(0, -monthsBack, 0)
-	// 设置查询时间范围的开始时间为目标月份的第一天。
-	timeBeing := time.Date(targetMonth.Year(), targetMonth.Month(), 1, 0, 0, 0, 0, now.Location())
-	// 设置查询时间范围的结束时间为目标月份的最后一天的最后一秒。
-	timeEnd := timeBeing.AddDate(0, 1, 0).Add(-1 * time.Second)
-	// ...
-}
+    // 检查 Hello 字段是否为空。
+    if strings.TrimSpace(g.Hello) == "" {
+        return nil, errors.New("Hello 字段不能为空")
+    }
 
-// ❌ 错误示例：缺少业务逻辑梳理，注释不够详细
-func (m *myWork) checkAiUseTime(ctx context.Context, userID int64, finished bool, monthsBack int) error {
-	m.resetProcessedShortIDs()
-	uid := fmt.Sprintf("%d", userID)
-	now := time.Now()
-	targetMonth := now.AddDate(0, -monthsBack, 0)
-	timeBeing := time.Date(targetMonth.Year(), targetMonth.Month(), 1, 0, 0, 0, 0, now.Location())
-	// ...
-}
+    // 记录创建操作的调试日志。
+    u.logger.Debug("开始创建 Greeter: %v", g.Hello)
 
-// ❌ 错误示例：注释过于简略且未以标点结束
-func (m *myWork) checkAiUseTime(ctx context.Context, userID int64, finished bool, monthsBack int) error {
-	// 重置
-	m.resetProcessedShortIDs()
-	// 转换
-	uid := fmt.Sprintf("%d", userID)
-	// 获取时间
-	now := time.Now()
-	// ...
+    // 调用仓储层保存实体到数据库。
+    result, err := u.repo.Save(ctx, g)
+    if err != nil {
+        // 保存失败，返回包含上下文的错误信息。
+        return nil, fmt.Errorf("保存 Greeter 失败: %w", err)
+    }
+
+    // 返回创建成功的实体。
+    return result, nil
 }
 ```
 
-**函数体内注释要点**：
-- **业务逻辑梳理**：清晰说明每个关键步骤的业务含义
-- **数据处理说明**：解释数据转换、计算的目的
-- **边界条件**：说明特殊情况的处理逻辑
-- **关联关系**：说明与其他模块或函数的关联
+**注释原则**：
+
+| 原则 | 说明 |
+|------|------|
+| **关键步骤** | 为业务逻辑的关键步骤编写前置注释 |
+| **复杂逻辑** | 复杂条件判断、循环、递归需要逻辑说明 |
+| **数据处理** | 数据转换、计算的关键变量需要说明 |
+| **前置注释** | 优先使用独立行的前置注释 |
+| **标点结束** | 每条注释以中文标点符号结束 |
+
+**"关键步骤"判定标准**：
+- 业务决策点（影响流程走向的判断）
+- 数据转换点（格式转换、类型转换）
+- 外部调用点（调用其他服务、数据库操作）
+- 状态变更点（修改对象状态、缓存更新）
+
+**"复杂条件"判定标准**：
+- 2 层以上的嵌套条件（`if` 中嵌套 `if`）
+- 3 个以上的条件组合（使用 `&&` 或 `||` 连接）
+- 涉及位运算或特殊逻辑的条件
 
 ### 行内注释规范
 
@@ -515,22 +655,23 @@ avgResponseTime := sum(responseTimes) / len(responseTimes)
 
 // ✅ 可接受：必要的行内注释
 total := calculateTotal(items)  // 包含税费的总金额。
-config := load_config(path)      // 从默认路径加载用户配置。
+config := loadConfig(path)      // 从默认路径加载用户配置。
 
 // ❌ 错误示例：不必要的行内注释
-count := len(items)              // 获取元素数量
-result := process(data)          // 处理数据并返回结果
+count := len(items)             // 获取元素数量
+result := process(data)         // 处理数据并返回结果
 
 // ❌ 错误示例：行内注释未以标点结束
 total := calculateTotal(items)  // 包含税费的总金额
-config := load_config(path)      // 从默认路径加载用户配置
+config := loadConfig(path)      // 从默认路径加载用户配置
 ```
 
 **行内注释使用原则**：
-- 仅用于解释复杂或非直观的逻辑
-- 注释内容简洁明了，必须以标点结束
-- 与代码保持适当距离
-- 优先使用前置注释而非行尾注释
+- ✅ 仅用于解释复杂或非直观的逻辑
+- ✅ 注释内容简洁明了，必须以标点结束
+- ✅ 与代码保持适当距离（至少两个空格）
+- ❌ 不用于解释显而易见的代码
+- ❌ 不用于重复代码已表达的信息
 
 ### 条件分支注释
 
@@ -540,34 +681,36 @@ config := load_config(path)      // 从默认路径加载用户配置
 // ✅ 正确示例：清晰的条件说明
 // 如果为根节点（dep == 0），计算百分比并输出信息。
 if dep == 0 {
-	per := smt / csmt * 100
+    per := smt / csmt * 100
 
-	// 格式化输出消息。
-	msg := fmt.Sprintf("%3d 任务: %s [%3.2f%% %3.2f %3.2f] %s\n", idx, taskID, per, smt, csmt, info.Title)
-	// 根据条件着色输出。
-	if csmt >= 8 {
-		if per >= 60 {
-			msg = color.HiYellowString(msg)
-		} else if per <= 30 {
-			msg = color.HiCyanString(msg)
-		}
-	}
+    // 格式化输出消息。
+    msg := fmt.Sprintf("%3d 任务: %s [%3.2f%% %3.2f %3.2f] %s\n", idx, taskID, per, smt, csmt, info.Title)
+    // 根据完成度阈值着色输出。
+    if csmt >= 8 {
+        if per >= 60 {
+            // 完成度高于 60%，使用黄色高亮。
+            msg = color.HiYellowString(msg)
+        } else if per <= 30 {
+            // 完成度低于 30%，使用青色提示。
+            msg = color.HiCyanString(msg)
+        }
+    }
 
-	fmt.Print(msg)
+    fmt.Print(msg)
 }
 
 // ❌ 错误示例：缺少条件说明
 if dep == 0 {
-	per := smt / csmt * 100
-	msg := fmt.Sprintf("%3d 任务: %s [%3.2f%% %3.2f %3.2f] %s\n", idx, taskID, per, smt, csmt, info.Title)
-	if csmt >= 8 {
-		if per >= 60 {
-			msg = color.HiYellowString(msg)
-		} else if per <= 30 {
-			msg = color.HiCyanString(msg)
-		}
-	}
-	fmt.Print(msg)
+    per := smt / csmt * 100
+    msg := fmt.Sprintf("%3d 任务: %s [%3.2f%% %3.2f %3.2f] %s\n", idx, taskID, per, smt, csmt, info.Title)
+    if csmt >= 8 {
+        if per >= 60 {
+            msg = color.HiYellowString(msg)
+        } else if per <= 30 {
+            msg = color.HiCyanString(msg)
+        }
+    }
+    fmt.Print(msg)
 }
 ```
 
@@ -577,33 +720,35 @@ if dep == 0 {
 
 ```go
 // ✅ 正确示例：说明循环目的
-// 递归处理当前子任务。
-if nil != info.CurrentChindren {
-	for _, child := range info.CurrentChindren {
-		csmtc++
-		csmt += m.checkAiUseTimeInfo(ctx, child.ID, idx, dep+1)
-	}
+// 递归处理当前任务的子任务列表。
+if info.CurrentChildren != nil {
+    for _, child := range info.CurrentChildren {
+        childCount++
+        // 递归计算子任务的时间消耗。
+        totalTime += m.calculateTaskTime(ctx, child.ID, idx, dep+1)
+    }
 }
-// 递归处理转移子任务。
-if nil != info.TransferChildMetaworkInfo {
-	for _, child := range info.TransferChildMetaworkInfo {
-		csmtc++
-		csmt += m.checkAiUseTimeInfo(ctx, child.ID, idx, dep+1)
-	}
+// 递归处理已转移的子任务列表。
+if info.TransferredChildren != nil {
+    for _, child := range info.TransferredChildren {
+        childCount++
+        // 递归计算转移子任务的时间消耗。
+        totalTime += m.calculateTaskTime(ctx, child.ID, idx, dep+1)
+    }
 }
 
 // ❌ 错误示例：缺少循环说明
-if nil != info.CurrentChindren {
-	for _, child := range info.CurrentChindren {
-		csmtc++
-		csmt += m.checkAiUseTimeInfo(ctx, child.ID, idx, dep+1)
-	}
+if info.CurrentChildren != nil {
+    for _, child := range info.CurrentChildren {
+        childCount++
+        totalTime += m.calculateTaskTime(ctx, child.ID, idx, dep+1)
+    }
 }
-if nil != info.TransferChildMetaworkInfo {
-	for _, child := range info.TransferChildMetaworkInfo {
-		csmtc++
-		csmt += m.checkAiUseTimeInfo(ctx, child.ID, idx, dep+1)
-	}
+if info.TransferredChildren != nil {
+    for _, child := range info.TransferredChildren {
+        childCount++
+        totalTime += m.calculateTaskTime(ctx, child.ID, idx, dep+1)
+    }
 }
 ```
 
@@ -613,37 +758,44 @@ if nil != info.TransferChildMetaworkInfo {
 
 ```go
 // ✅ 正确示例：说明错误处理
-// 检查上下文是否已取消，如果已取消则返回 0。
-if nil != ctx.Err() {
-	return 0
+// 检查上下文是否已取消，如果已取消则立即返回。
+if ctx.Err() != nil {
+    return 0
 }
+
 // 获取任务详细信息。
-if info, err := appnd.GetTaskInfo(ctx, taskID); nil != err {
-	// 如果获取失败，打印错误信息并返回 0。
-	fmt.Printf("错误：%s %s\n", taskID, err)
-	return 0
-} else {
-	// 提取并修剪 ShortID。
-	shortID := strings.TrimSpace(info.ShortID)
-	// ...
+info, err := taskService.GetTaskInfo(ctx, taskID)
+if err != nil {
+    // 获取任务信息失败，记录错误并返回默认值。
+    fmt.Printf("错误：获取任务 %s 失败: %s\n", taskID, err)
+    return 0
+}
+
+// 提取并规范化任务短标识。
+shortID := strings.TrimSpace(info.ShortID)
+if shortID == "" {
+    // 任务短标识为空，使用原始 ID 作为替代。
+    shortID = taskID
 }
 
 // ❌ 错误示例：缺少错误处理说明
-if nil != ctx.Err() {
-	return 0
+if ctx.Err() != nil {
+    return 0
 }
-if info, err := appnd.GetTaskInfo(ctx, taskID); nil != err {
-	fmt.Printf("错误：%s %s\n", taskID, err)
-	return 0
-} else {
-	shortID := strings.TrimSpace(info.ShortID)
-	// ...
+info, err := taskService.GetTaskInfo(ctx, taskID)
+if err != nil {
+    fmt.Printf("错误：%s %s\n", taskID, err)
+    return 0
+}
+shortID := strings.TrimSpace(info.ShortID)
+if shortID == "" {
+    shortID = taskID
 }
 ```
 
 ### 禁止的注释风格
 
-**以下注释风格不允许出现**：
+**以下注释风格禁止出现**：
 
 ```go
 // ❌ 错误：在非 doc.go 文件中添加包级别注释
@@ -685,13 +837,13 @@ fmt.Println("message")
 
 // ❌ 错误：非导出函数缺少注释
 func processData(data []byte) error {
-	// ...
+    // ...
 }
 
 // ❌ 错误：实现接口的方法注释与接口不一致
-// 执行任务
-func (m *myWork) Run(ctx context.Context, taskName string, userID int64, finished bool) error {
-	// ...
+// 执行任务（接口定义为"运行指定的任务"）
+func (m *myWork) Run(ctx context.Context, taskName string) error {
+    // ...
 }
 
 // ❌ 错误：全局相同语义的注释表述不一致
@@ -701,131 +853,89 @@ func foo(ctx context.Context) error { }
 func bar(ctx context.Context) error { }
 ```
 
-### 注释自检流程
+| 禁止风格 | 原因 |
+|---------|------|
+| 非 doc.go 文件中的包注释 | 违反包注释集中管理原则 |
+| 注释未以标点结束 | 违反中文书写规范 |
+| 口语化表达 | 不符合技术文档专业性要求 |
+| 过于简略 | 无法提供有效信息 |
+| 注释与代码不一致 | 误导代码阅读者 |
+| 无额外价值的注释 | 增加代码噪音 |
+| 非导出函数缺少注释 | 影响代码可维护性 |
+| 实现方法注释与接口不一致 | 造成理解混乱 |
 
-完成代码编写后，执行以下自检步骤，确保注释符合规范。如发现不符合项，必须立即修正。
+### 标准注释术语表
 
-**1. 包级别注释检查**
-- 检查项：每个包是否存在 `doc.go` 文件
-- 判定标准：
-  - 每个包必须包含一个 `doc.go` 文件
-  - `doc.go` 文件必须包含包级别注释，格式为 `// Package <包名> <简短描述>。`
-  - `doc.go` 文件只包含 package 声明和注释，不包含任何代码实现
-  - 除 `doc.go` 外的所有文件，package 声明前后不得有任何注释
-- 不符合处理：
-  - 缺少 `doc.go` 文件：创建 `doc.go` 文件并添加包级别注释
-  - `doc.go` 包含代码：移除 `doc.go` 中的所有代码实现
-  - 其他文件有包注释：删除非 `doc.go` 文件中的包级别注释
+为保证注释一致性，以下常见参数使用统一表述：
 
-**2. 类型定义注释完整性检查**
-- 检查范围：所有 interface、struct、type 别名定义
-- 判定标准：
-  - 每个类型定义必须有功能说明注释
-  - interface 的每个方法必须有注释，且包含完整的参数说明和返回值说明
-  - struct 的每个字段必须有用途说明注释
-- 不符合处理：为缺失注释的类型、方法、字段补充完整注释
+| 参数类型 | 标准表述 |
+|---------|---------|
+| `context.Context` | "请求上下文，用于取消与超时控制。" |
+| `*Config` | "应用配置信息。" |
+| `Logger` | "日志记录器。" |
+| `error` 返回值 | "失败时返回错误，成功时返回 nil。" |
 
-**3. 函数和方法注释完整性检查**
-- 检查范围：所有 func 声明（包括导出和非导出函数）
-- 判定标准：
-  - 每个函数必须有功能描述注释
-  - 函数有参数时，必须在注释中说明每个参数的用途
-  - 函数有返回值时，必须在注释中说明每个返回值的含义
-- 不符合处理：为缺失注释的函数补充完整的功能、参数、返回值注释
-
-**4. interface 实现一致性检查**
-- 检查范围：所有实现 interface 的 struct 方法
-- 判定标准：struct 方法的注释内容必须与 interface 方法的注释完全一致（逐字比对）
-- 不符合处理：将 struct 方法的注释修改为与 interface 方法注释完全一致
-
-**5. 函数体内注释检查**
-- 检查范围：所有函数的实现代码
-- 判定标准：
-  - 函数包含业务逻辑时，关键业务步骤必须有说明注释
-  - 函数包含复杂条件判断（嵌套 if、多条件组合）时，必须有逻辑说明注释
-  - 函数包含循环或递归处理时，必须有处理目的说明注释
-  - 函数包含数据转换或计算时，关键变量必须有用途说明注释
-- 不符合处理：分析函数的业务逻辑，为缺失注释的关键步骤补充说明注释
-
-**6. 注释语义一致性检查**
-- 检查方法：搜索代码库中对相同概念的注释表述
-- 判定标准：相同概念的注释必须使用完全一致的表述（例如：所有 context.Context 参数的注释必须统一为"请求上下文，用于取消与超时控制"）
-- 不符合处理：将不一致的注释统一修改为标准表述
-
-**7. 注释语言规范性检查**
-- 检查范围：所有注释文本
-- 判定标准：
-  - 注释使用标准现代汉语，无语法错误
-  - 注释使用技术专业术语，不包含口语化表达（如"我们"、"这里"、"把...一下"等）
-  - 每个注释语句以中文标点符号结束（句号、感叹号等）
-- 不符合处理：修改不规范注释，使其符合语言规范标准
-
-**8. 注释准确性检查**
-- 检查方法：对照代码实现，验证注释描述是否准确
-- 判定标准：注释内容必须准确反映代码的实际功能和行为，不得出现与代码不符的描述
-- 不符合处理：修正注释，使其准确描述代码功能
-
-**9. 注释布局规范性检查**
-- 检查范围：所有注释的位置和格式
-- 判定标准：
-  - 类型、函数、方法的注释位于声明的紧邻上方
-  - 函数体内逻辑的注释优先使用独立行前置注释
-  - 行尾注释仅用于简短说明，且内容简洁
-  - 注释的缩进层级与其描述的代码一致
-- 不符合处理：调整注释位置和缩进，使其符合布局规范
-
-**自检结果判定**
-- 所有检查项均通过：注释符合规范，可以提交代码
-- 存在任何检查项不通过：必须修正不符合项，重新执行完整自检流程
-- [ ] 注释内容准确反映代码功能
-- [ ] 注释使用规范的中文表述
-- [ ] 避免了口语化和过于简略的表达
-- [ ] 优先使用前置注释而非行尾注释
+---
 
 ## 包导入规范
 
-### 基本要求
+### 导入格式
 
-**格式规范**
-- ✅ 所有 import 语句必须使用括号 `()` 包裹。
-- ✅ import 按段分组，段与段之间使用空行分隔。
-- ✅ 每个段内的包按字母顺序排序。
-- ✅ 第三方包需要取别名时，使用有意义的别名，避免冲突。
+**强制要求**：
+- 所有 `import` 语句必须使用括号 `()` 包裹
+- 按段分组，段与段之间使用空行分隔
+- 每个段内的包按字母顺序排序
 
-**分段规则**
-- ✅ **第一段**：Go SDK 中的内置包，按字母顺序排列。
-- ✅ **第二段**：Github 等第三方包，按字母顺序排列。
-- ✅ **第三段**：fsyyft-go 相关的包，主要包括 `fsyyft-go/kit`，都需要取别名，别名前缀为 `kit`，例如 `kitlog`。
-- ✅ **第四段**：项目内的相关包，也都需要取别名，别名前缀为 `app`，例如 `appconf`、`applog`。
+### 分段规则
 
-### 导入示例
+| 段落 | 内容 | 别名要求 |
+|------|------|---------|
+| **第一段** | Go 标准库 | 无需别名 |
+| **第二段** | 第三方包（github.com 等） | 按需取别名 |
+| **第三段** | fsyyft-go 相关包 | **强制**使用 `kit` 前缀别名 |
+| **第四段** | 项目内部包 | **强制**使用 `app` 前缀别名 |
 
-**正确示例**：
+### 别名规范
+
+**fsyyft-go 包别名**：
+
+| 包路径 | 别名 |
+|-------|------|
+| `github.com/fsyyft-go/kit/log` | `kitlog` |
+| `github.com/fsyyft-go/kit/runtime` | `kitruntime` |
+| `github.com/fsyyft-go/kit/kratos/middleware/validate` | `kitkratosmiddlewarevalidate` |
+
+**项目内部包别名**：
+
+| 包路径 | 别名 |
+|-------|------|
+| `github.com/fsyyft-go/kratos-layout/api/helloworld/v1` | `apphelloworldv1` |
+| `github.com/fsyyft-go/kratos-layout/internal/pkg/conf` | `appconf` |
+| `github.com/fsyyft-go/kratos-layout/internal/pkg/log` | `applog` |
+
+### 正确示例
 
 ```go
 import (
 	"context"
 	"fmt"
-	"os"
-	"path/filepath"
-	"sort"
 	"strings"
 	"time"
 
-	"github.com/fatih/color"
-	"github.com/openai/openai-go"
-	"github.com/openai/openai-go/option"
-	"github.com/openai/openai-go/packages/param"
+	"github.com/gin-gonic/gin"
+	"github.com/go-kratos/kratos/v2/errors"
+	kratoshttp "github.com/go-kratos/kratos/v2/transport/http"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	kitlog "github.com/fsyyft-go/kit/log"
+	kitruntime "github.com/fsyyft-go/kit/runtime"
 
-	appconf "metawork-extend/internal/pkg/conf"
-	appai "metawork-extend/pkg/ai"
-	appnd "metawork-extend/pkg/nd"
+	apphelloworldv1 "github.com/fsyyft-go/kratos-layout/api/helloworld/v1"
+	appconf "github.com/fsyyft-go/kratos-layout/internal/pkg/conf"
 )
 ```
 
-**错误示例**：
+### 错误示例
 
 ```go
 // ❌ 错误：未使用括号包裹
@@ -834,10 +944,9 @@ import "fmt"
 
 // ❌ 错误：未分段，未排序
 import (
-	"github.com/fatih/color"
+	"github.com/go-kratos/kratos/v2/errors"
 	"context"
 	kitlog "github.com/fsyyft-go/kit/log"
-	appconf "metawork-extend/internal/pkg/conf"
 	"fmt"
 )
 
@@ -846,41 +955,248 @@ import (
 	"github.com/fsyyft-go/kit/log"
 )
 
-// ❌ 错误：项目内包未取别名
+// ❌ 错误：项目内包未使用 app 前缀别名
 import (
-	"metawork-extend/internal/pkg/conf"
-)
-
-// ❌ 错误：项目内包未强制使用 app 前缀别名
-import (
-	"metawork-extend/internal/pkg/conf"
-	ai "metawork-extend/pkg/ai"
+	conf "github.com/fsyyft-go/kratos-layout/internal/pkg/conf"
 )
 ```
 
-### 别名规范
+---
 
-**fsyyft-go 包别名**：
-- 所有 `fsyyft-go/kit` 下的包必须取别名，格式为 `kit[packagename]`，其中 `packagename` 为包名，例如：
-  - `github.com/fsyyft-go/kit/log` → `kitlog`
-- 其他 `fsyyft-go` 下的包（如 `fsyyft-go/abc`）取别名格式为 `[abc][packagename]`，例如 `abclog`。
-- 保留第三段独立是强制的，别名全部使用小写字母。
+## 开发流程
 
-**项目内包别名**：
-- 所有项目内包必须强制取别名，格式为 `app[packagename]`，其中 `packagename` 为包名，例如：
-  - `metawork-extend/internal/pkg/conf` → `appconf`
-  - `metawork-extend/pkg/ai` → `appai`
-  - `metawork-extend/pkg/nd` → `appnd`
-- 别名全部使用小写字母。
+### 常用命令
 
-### 检查清单
+| 命令 | 用途 |
+|------|------|
+| `make init` | 初始化项目所需的工具链 |
+| `make api` | 生成 API 相关的 Protocol Buffers 代码 |
+| `make config` | 生成配置相关的 Protocol Buffers 代码 |
+| `make validate` | 生成验证相关代码 |
+| `make generate` | 执行代码生成任务（包括 Wire） |
+| `make lint` | 执行基本的代码质量检查 |
+| `make lint-strict` | 执行严格的代码质量检查 |
+| `make test` | 运行所有测试 |
+| `make build` | 构建多平台可执行文件 |
+| `make clean` | 清理构建产物 |
 
-编写代码后，检查 import 是否符合以下要求：
+### 开发工作流
 
-- [ ] import 使用括号包裹
-- [ ] 按段分组，段间有空行
-- [ ] 第一段：Go 内置包，按字母排序
-- [ ] 第二段：第三方包，按字母排序
-- [ ] 第三段：fsyyft-go 包，取相应前缀别名（如 kitlog、abclog），全小写
-- [ ] 第四段：项目内包，强制取 app 前缀别名（如 appconf、appai），全小写
-- [ ] 每个段内按字母顺序排序
+```
+1. 修改 Proto 文件（如需要）
+   └── 运行 make api 和 make validate
+
+2. 修改配置定义（如需要）
+   └── 运行 make config
+
+3. 编写业务代码
+   ├── 定义接口和结构体
+   ├── 实现业务逻辑
+   └── 编写完整注释
+
+4. 更新依赖注入
+   ├── 修改 wire.go 文件
+   └── 运行 make generate
+
+5. 代码检查
+   └── 运行 make lint 或 make lint-strict
+
+6. 运行测试
+   └── 运行 make test
+```
+
+### 代码质量检查
+
+**基本检查**（`make lint`）：
+- 使用 golangci-lint 进行静态分析
+- 超时时间：3 分钟
+
+**严格检查**（`make lint-strict`）：
+- 启用更多 linter
+- 超时时间：10 分钟
+- 启用：govet, errcheck, staticcheck, ineffassign, unused, gosec, misspell, revive
+
+---
+
+## 注释自检流程
+
+完成代码编写后，必须执行以下自检步骤，确保注释符合规范。如发现不符合项，必须立即修正后重新执行完整自检。
+
+### 步骤 1：包级别注释检查
+
+**检查项**：每个包是否存在 `doc.go` 文件
+
+**判定标准**：
+- ✅ 每个包必须包含一个 `doc.go` 文件
+- ✅ `doc.go` 文件必须包含包级别注释，格式为 `// Package <包名> <简短描述>。`
+- ✅ `doc.go` 文件只包含 `package` 声明和注释，不包含任何代码实现
+- ✅ 除 `doc.go` 外的所有文件，`package` 声明前后不得有任何注释
+
+**不符合处理**：
+- 缺少 `doc.go` 文件：创建 `doc.go` 文件并添加包级别注释
+- `doc.go` 包含代码：移除 `doc.go` 中的所有代码实现
+- 其他文件有包注释：删除非 `doc.go` 文件中的包级别注释
+
+### 步骤 2：类型定义注释完整性检查
+
+**检查范围**：所有 `interface`、`struct`、`type` 别名定义
+
+**判定标准**：
+- ✅ 每个类型定义必须有功能说明注释
+- ✅ `interface` 的每个方法必须有注释，且包含完整的参数说明和返回值说明
+- ✅ `struct` 的每个字段必须有用途说明注释
+
+**不符合处理**：为缺失注释的类型、方法、字段补充完整注释
+
+### 步骤 3：函数和方法注释完整性检查
+
+**检查范围**：所有 `func` 声明（包括导出和非导出函数）
+
+**判定标准**：
+- ✅ 每个函数必须有功能描述注释
+- ✅ 函数有参数时，必须在注释中说明每个参数的用途
+- ✅ 函数有返回值时，必须在注释中说明每个返回值的含义
+
+**不符合处理**：为缺失注释的函数补充完整的功能、参数、返回值注释
+
+### 步骤 4：interface 实现一致性检查
+
+**检查范围**：所有实现 `interface` 的 `struct` 方法
+
+**判定标准**：
+- ✅ `struct` 方法的注释内容必须与 `interface` 方法的注释完全一致（逐字比对）
+
+**不符合处理**：将 `struct` 方法的注释修改为与 `interface` 方法注释完全一致
+
+### 步骤 5：函数体内注释检查
+
+**检查范围**：所有函数的实现代码
+
+**判定标准**：
+- ✅ 函数包含业务逻辑时，关键业务步骤必须有说明注释
+- ✅ 函数包含复杂条件判断（嵌套 `if`、多条件组合）时，必须有逻辑说明注释
+- ✅ 函数包含循环或递归处理时，必须有处理目的说明注释
+- ✅ 函数包含数据转换或计算时，关键变量必须有用途说明注释
+
+**不符合处理**：分析函数的业务逻辑，为缺失注释的关键步骤补充说明注释
+
+### 步骤 6：注释语义一致性检查
+
+**检查方法**：搜索代码库中对相同概念的注释表述
+
+**判定标准**：
+- ✅ 相同概念的注释必须使用完全一致的表述
+- ✅ 例如：所有 `context.Context` 参数的注释必须统一为"请求上下文，用于取消与超时控制。"
+
+**不符合处理**：将不一致的注释统一修改为标准表述（参见"标准注释术语表"）
+
+### 步骤 7：注释语言规范性检查
+
+**检查范围**：所有注释文本
+
+**判定标准**：
+- ✅ 注释使用标准现代汉语，无语法错误
+- ✅ 注释使用技术专业术语，不包含口语化表达（如"我们"、"这里"、"把...一下"等）
+- ✅ 每个注释语句以中文标点符号结束（句号、感叹号等）
+
+**不符合处理**：修改不规范注释，使其符合语言规范标准
+
+### 步骤 8：注释准确性检查
+
+**检查方法**：对照代码实现，验证注释描述是否准确
+
+**判定标准**：
+- ✅ 注释内容必须准确反映代码的实际功能和行为
+- ✅ 不得出现与代码不符的描述
+
+**不符合处理**：修正注释，使其准确描述代码功能
+
+### 步骤 9：注释布局规范性检查
+
+**检查范围**：所有注释的位置和格式
+
+**判定标准**：
+- ✅ 类型、函数、方法的注释位于声明的紧邻上方
+- ✅ 函数体内逻辑的注释优先使用独立行前置注释
+- ✅ 行尾注释仅用于简短说明，且内容简洁
+- ✅ 注释的缩进层级与其描述的代码一致
+
+**不符合处理**：调整注释位置和缩进，使其符合布局规范
+
+### 自检结果判定
+
+| 判定结果 | 处理方式 |
+|---------|---------|
+| 所有检查项均通过 | 注释符合规范，可以提交代码 |
+| 存在任何检查项不通过 | 必须修正不符合项，重新执行完整自检流程 |
+
+---
+
+## 自检清单
+
+### 代码提交前自检
+
+完成代码编写后，逐项检查以下清单。所有项目必须全部通过方可提交代码。
+
+**包级别注释检查**：
+- [ ] 每个包存在 `doc.go` 文件
+- [ ] `doc.go` 包含完整的包级别注释（格式：`// Package <包名> <描述>。`）
+- [ ] `doc.go` 不包含任何代码实现（仅版权声明、包注释、package 声明）
+- [ ] 其他文件的 `package` 声明前后无注释
+
+**类型定义注释检查**：
+- [ ] 所有 `interface` 定义有功能说明注释
+- [ ] `interface` 的每个方法有完整的参数和返回值注释
+- [ ] 所有 `struct` 定义有用途说明注释
+- [ ] `struct` 的每个字段有用途说明注释
+
+**函数注释检查**：
+- [ ] 所有函数（含非导出）有功能描述注释
+- [ ] 有参数时，注释中说明每个参数的用途
+- [ ] 有返回值时，注释中说明每个返回值的含义
+- [ ] 实现接口的方法注释与接口定义完全一致（逐字比对）
+
+**函数体内注释检查**：
+- [ ] 关键业务步骤有说明注释
+- [ ] 复杂条件判断（2 层以上嵌套或 3 个以上条件组合）有逻辑说明注释
+- [ ] 循环和递归处理有目的说明注释
+- [ ] 注释使用独立行前置注释（非行尾注释）
+
+**注释规范检查**：
+- [ ] 注释使用规范的中文表述（无口语化表达）
+- [ ] 每个注释以中文标点符号结束
+- [ ] 相同语义使用统一的注释表述（参见"标准注释术语表"）
+- [ ] 注释内容准确反映代码功能（无描述与代码不符的情况）
+
+**包导入检查**：
+- [ ] `import` 使用括号包裹
+- [ ] 按四段分组（标准库、第三方、fsyyft-go、项目内），段间有空行
+- [ ] 每段内按字母顺序排序
+- [ ] `fsyyft-go` 包使用 `kit` 前缀别名（如 `kitlog`）
+- [ ] 项目内包使用 `app` 前缀别名（如 `appconf`）
+
+**代码规范检查**：
+- [ ] 运行 `make lint` 无错误
+- [ ] 运行 `make test` 全部通过
+- [ ] 不修改生成的代码文件（`*.pb.go`、`wire_gen.go`）
+- [ ] 不修改与请求无关的代码
+
+**错误处理检查**：
+- [ ] 所有可能返回错误的函数调用都有错误检查
+- [ ] 错误返回时使用 `%w` 保持错误链
+- [ ] 业务错误在 `biz` 层统一定义
+
+---
+
+## 变更历史
+
+| 版本 | 日期 | 变更说明 |
+|------|------|---------|
+| 1.2.0 | 2025-12-26 | 移除关键注意事项章节；优化生成代码管理规范（允许特定情况下手动修改）；调整版本控制规范表述 |
+| 1.1.0 | 2025-12-26 | 增加详细注释自检流程（9 步）；补充条件分支、循环、错误处理的代码示例；增加 `<think>` 标签使用规范；优化文档结构与风格 |
+| 1.0.0 | 2025-12-26 | 初始版本，基于项目实际规范整理 |
+
+---
+
+**维护者**: AI Assistant  
+**项目**: github.com/fsyyft-go/kratos-layout
