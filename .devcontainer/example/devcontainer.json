@@ -6,7 +6,7 @@
   "name": "Kratos Layout Dev Container",
   "dockerFile": "../Dockerfile",
   "build": {
-    "context": "../../",
+    "context": "..",
     "args": {
       "UBUNTU_VERSION": "ubuntu24.04",
       "CLAUDE_CODE_VERSION": "1.x"
@@ -54,8 +54,6 @@
   "runArgs": [
     "--pull",
     "never",
-    "--name",
-    "dev-kratos-layout",
     "--cap-add=SYS_PTRACE",
     "--security-opt",
     "seccomp=unconfined",
