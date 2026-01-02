@@ -3,6 +3,8 @@ set -e
 
 # 安装基础工具、网络工具和开发工具。
 apt-get -y update && apt-get install -y \
+    python3-pip \
+    python3.12-venv \
     locales \
     coreutils \
     util-linux \

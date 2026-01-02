@@ -12,7 +12,26 @@ echo "Starting Go installation..."
 echo "Go version: $GO_VERSION"
 
 # 1. 从国内镜像下载指定版本的安装包到 /tmp 目录
-GO_INSTALLER="${GO_VERSION}.linux-amd64.tar.gz"
+# 检测系统架构，自动选择对应的 Go 安装包
+ARCH=$(uname -m)
+case $ARCH in
+    x86_64)
+        GO_ARCH="amd64"
+        ;;
+    aarch64|arm64)
+        GO_ARCH="arm64"
+        ;;
+    armv7l)
+        GO_ARCH="armv7l"
+        ;;
+    *)
+        echo "不支持的架构: $ARCH"
+        exit 1
+        ;;
+esac
+
+echo "检测到系统架构: $ARCH (Go 平台: $GO_ARCH)"
+GO_INSTALLER="${GO_VERSION}.linux-${GO_ARCH}.tar.gz"
 DOWNLOAD_URL="https://mirrors.aliyun.com/golang/${GO_INSTALLER}"
 
 echo "Downloading from: $DOWNLOAD_URL"

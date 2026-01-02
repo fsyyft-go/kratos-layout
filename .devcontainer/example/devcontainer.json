@@ -6,7 +6,7 @@
   "name": "Kratos Layout Dev Container",
   "dockerFile": "../Dockerfile",
   "build": {
-    "context": "..",
+    "context": "../../",
     "args": {
       "UBUNTU_VERSION": "ubuntu24.04",
       "CLAUDE_CODE_VERSION": "1.x"
@@ -27,6 +27,8 @@
   "workspaceMount": "source=${localWorkspaceFolder},target=/development/github.com/fsyyft-go/kratos-layout,type=bind",
   "mounts": [
     "source=/var/run/docker.sock,target=/var/run/docker.sock,type=bind",
+    "source=${localWorkspaceFolder}/.devcontainer/data/.venv,target=/development/github.com/fsyyft-go/kratos-layout/.venv,type=bind",
+    "source=${localWorkspaceFolder}/.devcontainer/data,target=/data,type=bind",
     "source=${localWorkspaceFolder}/.devcontainer/data/go/cache,target=/usr/local/go/cache,type=bind",
     "source=${localWorkspaceFolder}/.devcontainer/data/go/path,target=/usr/local/go/path,type=bind"
   ],
@@ -72,7 +74,7 @@
         "go.toolsManagement.checkForUpdates": "local",
         "go.useLanguageServer": true,
         "go.goroot": "/usr/local/go",
-        "go.gopath": "/go",
+        "go.gopath": "/usr/local/go/path/",
         "files.eol": "\n",
         "files.trimTrailingWhitespace": true,
         "files.insertFinalNewline": true
