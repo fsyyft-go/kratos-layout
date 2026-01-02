@@ -174,3 +174,6 @@ docs/_build/
 .claude/skills/dist/
 *.skill
 .claude/reports/
+
+# DevContainer 默认配置（使用 exmples/ 目录的配置复制出来个性化修改）
+.devcontainer/devcontainer.json
