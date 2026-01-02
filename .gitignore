@@ -175,5 +175,8 @@ docs/_build/
 *.skill
 .claude/reports/
 
+# Claude Code 本地配置（开发环境个性化设置）
+.claude/settings.local.json
+
 # DevContainer 默认配置（使用 exmples/ 目录的配置复制出来个性化修改）
 .devcontainer/devcontainer.json
