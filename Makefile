@@ -41,6 +41,7 @@ help:
 	@echo "  lint             执行基本的代码质量检查"
 	@echo "  lint-strict      执行严格的代码质量检查"
 	@echo "  run-task         运行 Docker 容器"
+	@echo "  skills-build     构建所有 Claude Code 技能包"
 	@echo "  test             运行所有测试"
 	@echo ""
 	@echo "详细信息请查看 Makefile 文件中的注释"
@@ -163,6 +164,21 @@ run-task:
 	docker run \
 		-v $(PWD)/$(LOG_DIR)/container:/app/logs \
 		$(IMAGE_NAME)-task
+
+# 构建所有 Claude Code 技能包。
+# 遍历 .claude/skills 目录下的所有技能，调用 package_skill.py 打包脚本。
+.PHONY: skills-build
+skills-build:
+	@echo "开始构建 Claude Code 技能包..."
+	@mkdir -p .claude/skills/dist
+	@for skill_dir in .claude/skills/*/; do \
+		skill_name=$$(basename "$$skill_dir"); \
+		if [ "$$skill_name" != "dist" ]; then \
+			echo "正在打包技能: $$skill_name"; \
+			python .claude/skills/skill-creator/scripts/package_skill.py "$$skill_dir" ./.claude/skills/dist/ || echo "警告: $$skill_name 打包失败"; \
+		fi \
+	done
+	@echo "技能包构建完成，输出目录: .claude/skills/dist/"
 
 # 清理项目。
 # 注意：如果使用 OrbStack 运行项目，请不要使用此命令，否则会影响 OrbStack 的日志输出。
