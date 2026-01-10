@@ -4,10 +4,25 @@
 // See LICENSE file in the project root for full license information.
 
 /**
- * DevContainer 配置文件
+ * DevContainer 配置文件示例（Dockerfile 方式）
  *
- * 此文件定义了 VS Code DevContainer 的开发环境配置，用于创建一致的容器化开发环境。
- * DevContainer 允许开发者使用 Docker 容器作为完整的开发环境，包含所有必需的工具和依赖。
+ * ⚠️ 重要提示：
+ * 1. 此文件是示例配置，位于 `.devcontainer/example-dockerfile/` 目录
+ * 2. VSCode DevContainer 功能只能识别两层目录结构（`.devcontainer/devcontainer.json`）
+ * 3. 将配置文件放在 `example-` 子目录中，VSCode 无法自动识别
+ * 4. 使用方法：将此文件复制到 `.devcontainer/devcontainer.json`
+ *
+ * 📋 复制后的路径修改清单：
+ * ┌────────────────────────────────────────────────────────────────────────┐
+ * │ 配置项         │ 原路径（example-dockerfile/）  │ 新路径（.devcontainer/）│
+ * ├────────────────────────────────────────────────────────────────────────┤
+ * │ dockerFile     │ "../docker/Dockerfile"         │ "docker/Dockerfile"   │
+ * │ build.context │ "../docker/"                    │ "docker/"             │
+ * └────────────────────────────────────────────────────────────────────────┘
+ *
+ * 复制命令：
+ *   cd .devcontainer
+ *   cp example-dockerfile/devcontainer.json devcontainer.json
  *
  * 主要功能：
  * - 定义容器构建配置（基于 Dockerfile）
@@ -23,12 +38,14 @@
 
   // Dockerfile 路径（相对于此配置文件）。
   // 使用 ../Dockerfile 表示使用项目根目录的 Dockerfile。
+  // ⚠️ 复制到 .devcontainer/ 目录后，需修改为："dockerFile": "docker/Dockerfile"
   "dockerFile": "../docker/Dockerfile",
 
   // ========== 构建配置 ==========
   "build": {
     // 构建上下文路径（相对于此配置文件）。
     // ".." 表示使用项目根目录作为构建上下文。
+    // ⚠️ 复制到 .devcontainer/ 目录后，需修改为："context": "docker/"
     "context": "../docker/",
 
     // 构建参数，将传递给 Dockerfile 的 ARG 指令。

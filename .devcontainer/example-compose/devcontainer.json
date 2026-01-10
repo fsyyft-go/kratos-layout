@@ -4,21 +4,33 @@
 // See LICENSE file in the project root for full license information.
 
 /**
- * DevContainer 配置文件（Docker Compose 版本）
+ * DevContainer 配置文件示例（Docker Compose 方式）
  *
- * 此文件定义了 VS Code DevContainer 的开发环境配置，使用 Docker Compose 进行服务编排。
- * 与直接使用 Dockerfile 相比，Docker Compose 方式提供了更灵活的服务编排能力。
+ * ⚠️ 重要提示：
+ * 1. 此文件是示例配置，位于 `.devcontainer/example-compose/` 目录
+ * 2. VSCode DevContainer 功能只能识别两层目录结构（`.devcontainer/devcontainer.json`）
+ * 3. 将配置文件放在 `example-` 子目录中，VSCode 无法自动识别
+ * 4. 使用方法：将此文件和 docker-compose.yml 复制到 `.devcontainer/` 目录
+ *
+ * 📋 复制说明：
+ * ┌────────────────────────────────────────────────────────────────────────┐
+ * │ 配置项           │ 原路径    │ 新路径       │ 是否需要修改 │
+ * ├────────────────────────────────────────────────────────────────────────┤
+ * │ dockerComposeFile │ "docker-compose.yml" │ "docker-compose.yml" │ ❌ 否 │
+ * │ service           │ "app"               │ "app"               │ ❌ 否 │
+ * │ 卷挂载路径        │ "../../data/*"      │ "../../data/*"      │ ❌ 否 │
+ * └────────────────────────────────────────────────────────────────────────┘
+ *
+ * 复制命令：
+ *   cd .devcontainer
+ *   cp example-compose/devcontainer.json devcontainer.json
+ *   cp example-compose/docker-compose.yml docker-compose.yml
  *
  * 主要功能：
  * - 使用 Docker Compose 定义容器服务
  * - 配置环境变量和工作目录
  * - 设置 VS Code 扩展和设置
  * - 定义容器生命周期命令
- *
- * 使用方法：
- * 1. 将此文件和 docker-compose.yml 复制到 .devcontainer/ 目录
- * 2. 使用 VS Code 打开项目
- * 3. 选择 "在 DevContainer 中重新打开"
  */
 {
   // ========== 基础配置 ==========
@@ -27,9 +39,11 @@
 
   // ========== Docker Compose 配置 ==========
   // Docker Compose 文件路径（相对于此配置文件）。
+  // ✅ 复制到 .devcontainer/ 目录后，路径保持不变："dockerComposeFile": "docker-compose.yml"
   "dockerComposeFile": "docker-compose.yml",
 
   // 要使用的服务名称（对应 docker-compose.yml 中的服务名）。
+  // ✅ 复制到 .devcontainer/ 目录后，服务名保持不变："service": "app"
   "service": "app",
 
   // ========== 工作空间配置 ==========
