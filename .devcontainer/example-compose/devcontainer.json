@@ -1,0 +1,215 @@
+// Copyright 2025 fsyyft-go
+//
+// Licensed under the MIT License.
+// See LICENSE file in the project root for full license information.
+
+/**
+ * DevContainer 配置文件（Docker Compose 版本）
+ *
+ * 此文件定义了 VS Code DevContainer 的开发环境配置，使用 Docker Compose 进行服务编排。
+ * 与直接使用 Dockerfile 相比，Docker Compose 方式提供了更灵活的服务编排能力。
+ *
+ * 主要功能：
+ * - 使用 Docker Compose 定义容器服务
+ * - 配置环境变量和工作目录
+ * - 设置 VS Code 扩展和设置
+ * - 定义容器生命周期命令
+ *
+ * 使用方法：
+ * 1. 将此文件和 docker-compose.yml 复制到 .devcontainer/ 目录
+ * 2. 使用 VS Code 打开项目
+ * 3. 选择 "在 DevContainer 中重新打开"
+ */
+{
+  // ========== 基础配置 ==========
+  // 容器显示名称，将显示在 VS Code 的远程窗口标题中。
+  "name": "Kratos Layout Dev Container With Docker Compose",
+
+  // ========== Docker Compose 配置 ==========
+  // Docker Compose 文件路径（相对于此配置文件）。
+  "dockerComposeFile": "docker-compose.yml",
+
+  // 要使用的服务名称（对应 docker-compose.yml 中的服务名）。
+  "service": "app",
+
+  // ========== 工作空间配置 ==========
+  // 容器内的工作目录路径。
+  // 这是容器启动后的默认工作目录。
+  "workspaceFolder": "/development/github.com/fsyyft-go/kratos-layout",
+
+  // ========== 容器环境变量 ==========
+  // 这些环境变量将在容器内部设置，影响容器运行时的行为。
+  // 注意：大部分环境变量已在 docker-compose.yml 中配置。
+  "containerEnv": {
+    // ========== Claude Code API 配置 ==========
+    // 以下环境变量从本地环境传递到容器，用于 Claude Code 功能。
+    // ${env:VAR_NAME} 语法表示从本地环境变量中获取值。
+
+    // Anthropic API 基础 URL（用于自定义 API 端点）。
+    "ANTHROPIC_BASE_URL": "${env:ANTHROPIC_BASE_URL:https://open.bigmodel.cn/api/anthropic}",
+
+    // Anthropic 主要模型（用于复杂任务）。
+    "ANTHROPIC_MODEL": "${env:ANTHROPIC_MODEL:glm-4.7}",
+
+    // Anthropic 快速模型（用于简单任务）。
+    "ANTHROPIC_SMALL_FAST_MODEL": "${env:ANTHROPIC_SMALL_FAST_MODEL:glm-4.7}",
+
+    // Anthropic API 密钥（用于身份验证）。
+    "ANTHROPIC_API_KEY": "${env:ANTHROPIC_API_KEY}",
+
+    // Anthropic 认证令牌（用于 Claude Code CLI 认证）。
+    "ANTHROPIC_AUTH_TOKEN": "${env:ANTHROPIC_AUTH_TOKEN}",
+
+    // ========== Anthropic 日志配置（可选） ==========
+    // 日志级别，用于调试和问题排查。
+    // "ANTHROPIC_LOG": "debug"
+  },
+
+  // ========== 端口属性配置 ==========
+  // 定义特定端口的行为和显示方式。
+  "portsAttributes": {
+    "22": {
+      // 端口标签，显示在 VS Code 端口视图中。
+      "label": "SSH",
+
+      // 自动转发行为："silent" 表示静默转发，不通知用户。
+      "onAutoForward": "silent"
+    },
+    "8000": {
+      // Web 服务端口（HTTP API）。
+      "label": "Web Server",
+
+      // 自动转发行为："openPreview" 表示转发后自动打开浏览器预览。
+      "onAutoForward": "openPreview"
+    },
+    "8001": {
+      // Task 服务端口（后台任务服务）。
+      "label": "Task Server",
+
+      // 静默转发，不打开浏览器。
+      "onAutoForward": "silent"
+    },
+    "9000": {
+      // gRPC 服务端口。
+      "label": "gRPC Server",
+
+      // 静默转发。
+      "onAutoForward": "silent"
+    }
+  },
+
+  // ========== 容器用户配置 ==========
+  // 容器内使用的用户名。
+  // 该用户必须在 Dockerfile 中创建。
+  "remoteUser": "fsyyft",
+
+  // ========== VS Code 定制配置 ==========
+  "customizations": {
+    "vscode": {
+      // VS Code 设置，这些设置将覆盖用户的本地设置。
+      "settings": {
+        // 终端默认 shell 配置（Linux 平台）。
+        "terminal.integrated.defaultProfile.linux": "zsh",
+
+        // 终端字体大小。
+        "terminal.integrated.fontSize": 14,
+
+        // 保存时自动格式化代码。
+        "editor.formatOnSave": true,
+
+        // 保存时自动执行的代码操作。
+        "editor.codeActionsOnSave": {
+          // 显式地组织导入（删除未使用的导入，排序导入）。
+          "source.organizeImports": "explicit"
+        },
+
+        // ========== Go 语言特定设置 ==========
+        // Go 工具更新检查策略："local" 表示不自动检查更新。
+        "go.toolsManagement.checkForUpdates": "local",
+
+        // 启用 Go 语言服务器（gopls），提供更好的代码智能提示。
+        "go.useLanguageServer": true,
+
+        // Go 根目录，指定 Go SDK 安装路径。
+        "go.goroot": "/usr/local/go",
+
+        // Go 工作目录，指定 GOPATH 路径。
+        "go.gopath": "/usr/local/go/path/",
+
+        // ========== 文件设置 ==========
+        // 文件行结束符："\n" 表示使用 LF（Unix 风格）。
+        "files.eol": "\n",
+
+        // 保存时自动删除行尾空格。
+        "files.trimTrailingWhitespace": true,
+
+        // 保存时自动在文件末尾插入新行。
+        "files.insertFinalNewline": true
+      },
+
+      // 自动安装的 VS Code 扩展列表。
+      // 容器创建时会自动安装这些扩展。
+      "extensions": [
+        "golang.go",              // Go 官方扩展，提供 Go 语言支持。
+        "ms-vscode.makefile-tools",  // Makefile 工具扩展，提供 Makefile 语法高亮和命令补全。
+        "eamodio.gitlens",        // GitLens 增强 Git 功能。
+        "GitHub.copilot",         // GitHub Copilot AI 代码助手。
+        "anthropic.claude-code"   // Claude Code 扩展。
+      ]
+    }
+  },
+
+  // ========== DevContainer 功能特性 ==========
+  // 功能特性（Features）是可重用的组件，可以快速添加常用功能。
+  //
+  // 注意：
+  // 当前配置使用 Docker Compose，Docker-in-Docker 功能已在 docker-compose.yml
+  // 中通过挂载 Docker socket 和安装必要的工具实现。
+  //
+  // 如果需要在容器内运行完全隔离的 Docker 环境，可以取消注释以下配置：
+  "features": {
+    // Docker-in-Docker (DinD) 功能，在容器内安装完整的 Docker 环境。
+    //
+    // 与挂载 Docker Socket 的区别：
+    // 挂载 socket（当前在 docker-compose.yml 中配置）：
+    // - 优点：性能更好，直接访问宿主机镜像
+    // - 缺点：隔离性较低，存在安全风险
+    //
+    // DinD 提供完全隔离的容器内 Docker 环境：
+    // - 优点：完全隔离，安全性高，适合完整的容器化开发
+    // - 缺点：镜像不共享，需要重新构建
+    //
+    // 如需使用 DinD，取消注释以下行：
+    // "ghcr.io/devcontainers/features/docker-in-docker:2": {}
+  },
+
+  // ========== 容器生命周期命令 ==========
+  // 容器创建后执行的命令（在工作目录创建后）。
+  // 留空表示不执行任何命令。
+  "onCreateCommand": "",
+
+  // 容器创建后执行的命令（在容器完全启动后）。
+  // 可以用于初始化脚本、安装依赖等。
+  //
+  // 示例：
+  // - 初始化 Python 虚拟环境：python -m venv .venv
+  // - 安装 Go 依赖：go mod download
+  // - 运行项目初始化：make init
+  "postCreateCommand": "",
+
+  // ========== 端口转发配置 ==========
+  // 自动转发的端口列表。
+  // 容器启动时，这些端口会自动从容器转发到本地。
+  "forwardPorts": [
+    8000,  // Web 服务端口。
+    8001,  // Task 服务端口。
+    9000   // gRPC 服务端口。
+  ],
+
+  // ========== 其他端口属性 ==========
+  // 未在 portsAttributes 中明确配置的端口默认行为。
+  "otherPortsAttributes": {
+    // 默认静默转发，不显示通知。
+    "onAutoForward": "silent"
+  }
+}
