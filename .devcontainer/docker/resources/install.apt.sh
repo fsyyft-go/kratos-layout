@@ -3,8 +3,6 @@ set -e
 
 # 安装基础工具、网络工具和开发工具。
 apt-get -y update && apt-get install -y \
-    python3-pip \
-    python3.12-venv \
     locales \
     coreutils \
     util-linux \
@@ -53,6 +51,20 @@ apt-get -y update && apt-get install -y \
     openssh-server \
     zsh \
     sudo
+
+apt install -y software-properties-common
+add-apt-repository ppa:deadsnakes/ppa -y
+
+apt-get -y update && apt-get install -y \
+    python3.13 \
+    python3.14 \
+    python3.12-venv \
+    python3.13-venv \
+    python3.14-venv \
+    python3.12-dev \
+    python3.13-dev \
+    python3.14-dev \
+    python3-pip
 
 # 安装 UPX (Ultimate Packer for eXecutables)。
 cd /tmp \

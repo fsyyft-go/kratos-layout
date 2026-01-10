@@ -97,6 +97,10 @@ RUN --mount=type=cache,target=/root/.npm,id=npm-cache \
     rm -rfv /usr/bin/install.node.sh && \
     du -sh /root/.npm 2>/dev/null | xargs echo "NPM cache size:"
 
+# 安装 OpenCode 工具。
+RUN curl -fsSL https://opencode.ai/install | bash && \
+    mv /root/.opencode/bin/opencode /usr/local/bin
+
 # 创建并设置工作目录。
 RUN mkdir -p /home/workspace
 WORKDIR /home/workspace
@@ -104,14 +108,14 @@ WORKDIR /home/workspace
 # 复制容器入口脚本。
 COPY resources/check.mount.sh /usr/bin/check.mount.sh
 COPY resources/check.version.sh /usr/bin/check.version.sh
-COPY resources/docker-entrypoint.sh /docker-entrypoint.sh
+COPY resources/docker-entrypoint.sh /usr/bin/docker-entrypoint.sh
 
 # 设置脚本执行权限。
 RUN chmod +x /usr/bin/check.mount.sh /usr/bin/check.version.sh && \
-    chmod +x /docker-entrypoint.sh
+    chmod +x /usr/bin/docker-entrypoint.sh
 
 # 设置容器入口点。
-ENTRYPOINT ["/docker-entrypoint.sh"]
+ENTRYPOINT ["/usr/bin/docker-entrypoint.sh"]
 
 # 执行清理操作。
 RUN chmod +x /usr/bin/clean.system.sh && \
