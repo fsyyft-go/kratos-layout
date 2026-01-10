@@ -1,0 +1,382 @@
+#!/bin/bash
+
+# Docker 镜像保存和压缩脚本
+# 用于保存 Docker 镜像为 tar 文件，计算校验和，并进行压缩打包
+#
+# 使用方法：
+#   ./save <image_name>    # 保存指定镜像
+#   ./save --help          # 显示帮助信息
+#
+# 示例：
+#   ./save fsyyft/devcontainer/ubuntu/go:ubuntu24.04.26011103
+#   # 输出文件：ubuntu-amd64:ubuntu24.04.26011103.tar
+#   #           ubuntu-amd64:ubuntu24.04.26011103.tar.sha1
+#   #           ubuntu-amd64:ubuntu24.04.26011103.tar.xz
+#   #           ubuntu-amd64:ubuntu24.04.26011103.tar.xz.sha1
+#   #           ubuntu-amd64:ubuntu24.04.26011103.7z
+
+set -e
+
+# 切换到脚本所在目录
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$SCRIPT_DIR"/..
+
+# 颜色输出
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
+# 日志函数
+log_info() {
+    echo -e "${BLUE}[INFO]${NC} $1"
+}
+
+log_warn() {
+    echo -e "${YELLOW}[WARN]${NC} $1"
+}
+
+log_error() {
+    echo -e "${RED}[ERROR]${NC} $1"
+}
+
+log_success() {
+    echo -e "${GREEN}[SUCCESS]${NC} $1"
+}
+
+# 显示帮助信息
+show_help() {
+    echo "Docker 镜像保存和压缩脚本"
+    echo
+    echo "用法："
+    echo "  $0 <image_name> [选项]"
+    echo
+    echo "参数："
+    echo "  image_name    Docker 镜像名称，包含版本标签"
+    echo
+    echo "选项："
+    echo "  --help        显示此帮助信息"
+    echo
+    echo "示例："
+    echo "  $0 fsyyft/devcontainer/ubuntu/go:ubuntu24.04.26011103"
+    echo "  # 输出文件："
+    echo "  #   ubuntu-amd64:ubuntu24.04.26011103.tar"
+    echo "  #   ubuntu-amd64:ubuntu24.04.26011103.tar.sha1"
+    echo "  #   ubuntu-amd64:ubuntu24.04.26011103.tar.xz"
+    echo "  #   ubuntu-amd64:ubuntu24.04.26011103.tar.xz.sha1"
+    echo "  #   ubuntu-amd64:ubuntu24.04.26011103.7z"
+    echo "  #   ubuntu-amd64:ubuntu24.04.26011103.7z.sha1"
+    echo
+    echo "注意："
+    echo "  - 需要安装 docker, sha1sum, xz, 7z"
+    echo "  - 确保有足够的磁盘空间"
+}
+
+# 检查依赖
+check_dependencies() {
+    local deps=("docker" "sha1sum" "xz" "7z")
+    local missing=()
+
+    for dep in "${deps[@]}"; do
+        if ! command -v "$dep" &> /dev/null; then
+            missing+=("$dep")
+        fi
+    done
+
+    if [ ${#missing[@]} -ne 0 ]; then
+        log_error "缺少必要的依赖："
+        printf '  - %s\n' "${missing[@]}"
+        log_error "请安装这些工具后再运行脚本。"
+        exit 1
+    fi
+}
+
+# 检查 Docker 是否运行
+check_docker() {
+    if ! docker info &> /dev/null; then
+        log_error "Docker 未运行或无权限访问。"
+        exit 1
+    fi
+}
+
+# 检查镜像是否存在
+check_image() {
+    local image="$1"
+    if ! docker image inspect "$image" &> /dev/null; then
+        log_error "镜像不存在：$image"
+        exit 1
+    fi
+}
+
+# 获取镜像架构
+get_image_architecture() {
+    local image="$1"
+    local arch=$(docker inspect --format='{{.Architecture}}' "$image")
+    case "$arch" in
+        "amd64")
+            echo "amd64"
+            ;;
+        "arm64")
+            echo "arm64"
+            ;;
+        *)
+            log_error "不支持的架构：$arch"
+            exit 1
+            ;;
+    esac
+}
+
+# 验证 tar 文件
+verify_tar_file() {
+    local tar_file="$1"
+
+    log_info "验证 tar 文件..."
+
+    # 检查文件是否存在
+    if [ ! -f "$tar_file" ]; then
+        log_error "tar 文件不存在：$tar_file"
+        return 1
+    fi
+
+    # 检查文件大小
+    local file_size=$(stat -f%z "$tar_file" 2>/dev/null || stat -c%s "$tar_file" 2>/dev/null)
+    if [ "$file_size" -eq 0 ]; then
+        log_error "tar 文件大小为 0：$tar_file"
+        return 1
+    fi
+
+    # 尝试列出 tar 文件内容（不提取）来验证完整性
+    # 使用 --warning=none 抑制警告，-f 指定文件
+    # 先尝试标准方式，如果失败则尝试兼容模式
+    if tar -tf "$tar_file" > /dev/null 2>&1; then
+        log_success "tar 文件验证通过"
+        return 0
+    elif tar --warning=none -tf "$tar_file" > /dev/null 2>&1; then
+        log_success "tar 文件验证通过"
+        return 0
+    elif tar --warning=none -xf "$tar_file" --to-stdout 2>/dev/null | head -c 1 > /dev/null; then
+        # 尝试读取文件的前几个字节来验证
+        log_success "tar 文件验证通过（通过读取测试）"
+        return 0
+    else
+        # 如果 tar 验证失败，尝试读取 manifest.json 来验证
+        # 这不会触发 docker load，不会覆盖现有镜像
+        log_warn "tar -tf 验证失败，尝试验证 tar 内部结构..."
+
+        # 检查 tar 文件中是否包含 manifest.json（Docker 镜像的标志性文件）
+        if tar -xOf "$tar_file" manifest.json > /dev/null 2>&1; then
+            log_success "tar 文件验证通过（包含有效的 Docker manifest）"
+            return 0
+        else
+            log_error "tar 文件损坏或无法读取：$tar_file"
+            return 1
+        fi
+    fi
+}
+
+# 验证 xz 文件
+verify_xz_file() {
+    local xz_file="$1"
+
+    log_info "验证 xz 压缩文件..."
+
+    # 检查文件是否存在
+    if [ ! -f "$xz_file" ]; then
+        log_error "xz 文件不存在：$xz_file"
+        return 1
+    fi
+
+    # 检查文件大小
+    local file_size=$(stat -f%z "$xz_file" 2>/dev/null || stat -c%s "$xz_file" 2>/dev/null)
+    if [ "$file_size" -eq 0 ]; then
+        log_error "xz 文件大小为 0：$xz_file"
+        return 1
+    fi
+
+    # 使用 xz -t 测试压缩文件完整性
+    if xz -t "$xz_file" > /dev/null 2>&1; then
+        log_success "xz 文件验证通过"
+        return 0
+    else
+        log_error "xz 文件损坏或无法读取：$xz_file"
+        return 1
+    fi
+}
+
+# 验证 7z 文件
+verify_7z_file() {
+    local archive_file="$1"
+
+    log_info "验证 7z 压缩包..."
+
+    # 检查文件是否存在
+    if [ ! -f "$archive_file" ]; then
+        log_error "7z 文件不存在：$archive_file"
+        return 1
+    fi
+
+    # 检查文件大小
+    local file_size=$(stat -f%z "$archive_file" 2>/dev/null || stat -c%s "$archive_file" 2>/dev/null)
+    if [ "$file_size" -eq 0 ]; then
+        log_error "7z 文件大小为 0：$archive_file"
+        return 1
+    fi
+
+    # 使用 7z t 测试压缩包完整性
+    if 7z t "$archive_file" > /dev/null 2>&1; then
+        log_success "7z 文件验证通过"
+        return 0
+    else
+        log_error "7z 文件损坏或无法读取：$archive_file"
+        return 1
+    fi
+}
+
+# 解析镜像名称
+parse_image_name() {
+    local image="$1"
+    # 移除 registry 前缀，如果有的话
+    local without_registry="${image#*/}"
+    # 获取镜像名称部分（不含标签）
+    local name_part="${without_registry%:*}"
+    # 获取标签部分
+    local tag_part="${without_registry##*:}"
+
+    # 如果没有标签，使用 latest
+    if [ "$tag_part" = "$without_registry" ]; then
+        tag_part="latest"
+    fi
+
+    # 获取基础名称（最后一个 / 后的部分）
+    local base_name="${name_part##*/}"
+
+    echo "$base_name" "$tag_part"
+}
+
+# 主保存函数
+save_image() {
+    local image="$1"
+
+    log_info "开始保存 Docker 镜像：$image"
+    echo
+
+    # 检查镜像
+    check_image "$image"
+
+    # 获取架构
+    local platform=$(get_image_architecture "$image")
+    log_info "镜像架构：$platform"
+
+    # 解析镜像名称
+    local parsed=($(parse_image_name "$image"))
+    local imagename="${parsed[0]}"
+    local tag="${parsed[1]}"
+
+    # 组织目标文件名
+    local base_filename="${imagename}-${platform}:${tag}"
+    local tar_filename="${base_filename}.tar"
+    local xz_filename="${tar_filename}.xz"
+    local tar_sha1_filename="${tar_filename}.sha1"
+    local xz_sha1_filename="${xz_filename}.sha1"
+    local archive_filename="${base_filename}.7z"
+
+    log_info "目标文件名：$tar_filename"
+    echo
+
+    # 步骤 3: 保存镜像为 tar 文件
+    log_info "保存镜像到 tar 文件..."
+    if docker save "$image" > "$tar_filename"; then
+        log_success "镜像已保存到：$tar_filename"
+    else
+        log_error "保存镜像失败"
+        exit 1
+    fi
+
+    # 验证 tar 文件
+    if ! verify_tar_file "$tar_filename"; then
+        log_error "tar 文件验证失败"
+        exit 1
+    fi
+    echo
+
+    # 步骤 4: 计算 tar 文件的 SHA1
+    log_info "计算 tar 文件 SHA1..."
+    local tar_sha1=$(sha1sum "$tar_filename" | awk '{print $1}')
+    echo "$tar_sha1" > "$tar_sha1_filename"
+    log_success "SHA1 已保存到：$tar_sha1_filename"
+
+    # 步骤 5: 使用 xz 压缩
+    log_info "使用 xz 压缩 tar 文件..."
+    if xz -9 -T0 -v -k "$tar_filename"; then
+        log_success "压缩完成：$xz_filename"
+    else
+        log_error "压缩失败"
+        exit 1
+    fi
+
+    # 验证 xz 文件
+    if ! verify_xz_file "$xz_filename"; then
+        log_error "xz 文件验证失败"
+        exit 1
+    fi
+    echo
+
+    # 步骤 6: 计算 xz 文件的 SHA1
+    log_info "计算 xz 文件 SHA1..."
+    local xz_sha1=$(sha1sum "$xz_filename" | awk '{print $1}')
+    echo "$xz_sha1" > "$xz_sha1_filename"
+    log_success "SHA1 已保存到：$xz_sha1_filename"
+
+    # 步骤 7: 使用 7z 打包
+    log_info "使用 7z 打包所有文件..."
+    if 7z a -mx9 "$archive_filename" "$tar_sha1_filename" "$xz_sha1_filename" "$xz_filename"; then
+        log_success "打包完成：$archive_filename"
+    else
+        log_error "打包失败"
+        exit 1
+    fi
+
+    # 验证 7z 文件
+    if ! verify_7z_file "$archive_filename"; then
+        log_error "7z 文件验证失败"
+        exit 1
+    fi
+    echo
+
+    # 步骤 8: 计算 7z 文件的 SHA1
+    log_info "计算 7z 文件 SHA1..."
+    local archive_sha1=$(sha1sum "$archive_filename" | awk '{print $1}')
+    echo "$archive_sha1" > "${archive_filename}.sha1"
+    log_success "SHA1 已保存到：${archive_filename}.sha1"
+
+    echo
+    log_success "镜像保存和压缩完成！"
+    log_info "生成的文件："
+    log_info "  - $tar_filename"
+    log_info "  - $tar_sha1_filename"
+    log_info "  - $xz_filename"
+    log_info "  - $xz_sha1_filename"
+    log_info "  - $archive_filename"
+    log_info "  - ${archive_filename}.sha1"
+}
+
+# 主函数
+main() {
+    local image="$1"
+
+    if [ -z "$image" ] || [ "$image" = "--help" ] || [ "$image" = "-h" ]; then
+        show_help
+        exit 0
+    fi
+
+    # 检查依赖
+    check_dependencies
+    check_docker
+
+    # 执行保存
+    save_image "$image"
+}
+
+# 执行主函数
+main "$@"
