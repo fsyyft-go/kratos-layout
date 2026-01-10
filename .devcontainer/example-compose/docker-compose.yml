@@ -17,9 +17,9 @@
 # ┌────────────────────────────────────────────────────────────────────────┐
 # │ 配置项       │ 说明                    │ 是否需要修改 │
 # ├────────────────────────────────────────────────────────────────────────┤
-# │ image       │ 镜像配置，使用环境变量   │ ❌ 否       │
-# │ volumes     │ 卷挂载路径使用 ../../   │ ❌ 否       │
-# │ ports       │ 端口映射配置            │ ❌ 否       │
+# │ image       │ 镜像配置，使用环境变量   │ ✅ 否       │
+# │ volumes     │ 卷挂载路径使用 ../../   │ ⚠️ 是       │
+# │ ports       │ 端口映射配置            │ ✅ 否       │
 # └────────────────────────────────────────────────────────────────────────┘
 #
 # 复制命令：
@@ -109,7 +109,7 @@ services:
     # ========== 环境变量文件配置 ==========
     # 从指定文件加载环境变量。
     # 文件路径相对于 docker-compose.yml 所在目录。
-    # ✅ 复制到 .devcontainer/ 目录后，路径保持不变："../.env"
+    # ⚠️ 复制到 .devcontainer/ 目录后，路径保持不变：".env"
     #
     # .env 文件格式：
     #   IMAGE_REPO=fsyyft/devcontainer/ubuntu/go
@@ -198,7 +198,7 @@ services:
 
     # ========== 卷挂载配置 ==========
     # 定义数据卷挂载，用于持久化数据和共享资源。
-    # ✅ 复制到 .devcontainer/ 目录后，卷挂载路径保持不变（使用 ../../ 相对路径）
+    # 警告 复制到 .devcontainer/ 目录后，卷挂载路径需要变更（使用 ./ 相对路径）
     volumes:
       # ========== Docker Socket 挂载 ==========
       # 挂载 Docker socket，允许容器内运行 Docker 命令（Docker-in-Docker）。
@@ -214,16 +214,16 @@ services:
 
       # ========== 数据目录挂载 ==========
       # 挂载 Python 虚拟环境目录，避免每次重建容器时重新安装依赖。
-      - ../../data/.venv:/development/github.com/fsyyft-go/kratos-layout/.venv
+      - ../data/.venv:/development/github.com/fsyyft-go/kratos-layout/.venv
 
       # 挂载通用数据目录，用于持久化其他数据。
-      - ../../data:/data
+      - ../data:/data
 
       # 挂载 Go 缓存目录，加速 Go 模块下载。
-      - ../../data/go/cache:/usr/local/go/cache
+      - ../data/go/cache:/usr/local/go/cache
 
       # 挂载 Go GOPATH 目录，持久化 Go 依赖和工具。
-      - ../../data/go/path:/usr/local/go/path
+      - ../data/go/path:/usr/local/go/path
 
     # ========== 工作目录配置 ==========
     # 容器内的工作目录路径。

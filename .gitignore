@@ -180,3 +180,4 @@ docs/_build/
 
 # DevContainer 默认配置（使用 exmples/ 目录的配置复制出来个性化修改）
 .devcontainer/devcontainer.json
+.devcontainer/docker-compose.yml
