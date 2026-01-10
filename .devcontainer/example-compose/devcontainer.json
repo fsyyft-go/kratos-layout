@@ -12,19 +12,30 @@
  * 3. 将配置文件放在 `example-` 子目录中，VSCode 无法自动识别
  * 4. 使用方法：将此文件和 docker-compose.yml 复制到 `.devcontainer/` 目录
  *
- * 📋 复制说明：
+ * 📋 复制到 .devcontainer/ 后的配置说明：
  * ┌────────────────────────────────────────────────────────────────────────┐
- * │ 配置项           │ 原路径    │ 新路径       │ 是否需要修改 │
+ * │ 配置项                  │ 是否需要修改 │ 说明 │
  * ├────────────────────────────────────────────────────────────────────────┤
- * │ dockerComposeFile │ "docker-compose.yml" │ "docker-compose.yml" │ ❌ 否 │
- * │ service           │ "app"               │ "app"               │ ❌ 否 │
- * │ 卷挂载路径        │ "../../data/*"      │ "../../data/*"      │ ❌ 否 │
+ * │ dockerComposeFile      │ ❌ 否       │ 同级文件，路径不变 │
+ * │ service                │ ❌ 否       │ 服务名不变 │
+ * │ workspaceFolder        │ ❌ 否       │ 容器内绝对路径，不变 │
+ * │ ⚠️ docker-compose.yml  │ ✅ **是**  │ 必须修改路径！ │
  * └────────────────────────────────────────────────────────────────────────┘
+ *
+ * ⚠️⚠️⚠️ 重要：必须同时修改 docker-compose.yml 中的路径！⚠️⚠️⚠️
+ *
+ * docker-compose.yml 路径修改对照：
+ *   - env_file：../.env → .env
+ *   - 工作空间挂载：../.. → ..
+ *   - 数据目录：../data/* → ./data/*
+ *
+ * 详见 docker-compose.yml 文件头部的详细说明。
  *
  * 复制命令：
  *   cd .devcontainer
  *   cp example-compose/devcontainer.json devcontainer.json
  *   cp example-compose/docker-compose.yml docker-compose.yml
+ *   # 然后按上方对照表修改 docker-compose.yml 中的路径
  *
  * 主要功能：
  * - 使用 Docker Compose 定义容器服务

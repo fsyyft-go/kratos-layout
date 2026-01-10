@@ -13,19 +13,53 @@
 # 3. 使用预构建镜像：首次使用前需要运行 .devcontainer/docker/scripts/build 构建镜像
 # 4. 使用方法：将此文件和 devcontainer.json 复制到 .devcontainer/ 目录
 #
-# 📋 复制说明：
+# 📋 复制到 .devcontainer/ 后的配置修改说明：
 # ┌────────────────────────────────────────────────────────────────────────┐
-# │ 配置项       │ 说明                    │ 是否需要修改 │
+# │ 配置项                  │ 是否需要修改 │ 说明 │
 # ├────────────────────────────────────────────────────────────────────────┤
-# │ image       │ 镜像配置，使用环境变量   │ ✅ 否       │
-# │ volumes     │ 卷挂载路径使用 ../../   │ ⚠️ 是       │
-# │ ports       │ 端口映射配置            │ ✅ 否       │
+# │ image                  │ ❌ 否       │ 镜像配置保持不变 │
+# │ dockerComposeFile      │ ❌ 否       │ 同级文件，路径不变 │
+# │ service                │ ❌ 否       │ 服务名不变 │
+# │ ⚠️ env_file            │ ✅ **是**  │ ../.env → .env │
+# │ ⚠️ volumes 路径        │ ✅ **是**  │ 详见下方详细说明 │
+# │ ⚠️ workspaceFolder     │ ❌ 否       │ 容器内绝对路径，不变 │
 # └────────────────────────────────────────────────────────────────────────┘
+#
+# ⚠️⚠️⚠️ 重要：docker-compose.yml 中的路径必须修改！⚠️⚠️⚠️
+#
+# 路径修改对照：
+# ┌────────────────────────────────────────────────────────────────────────┐
+# │ 配置项                │ example-compose/ 路径 │ .devcontainer/ 路径 │
+# ├────────────────────────────────────────────────────────────────────────┤
+# │ env_file             │ ../.env              │ .env                 │
+# │ 工作空间挂载          │ ../..                │ ..                   │
+# │ Python 虚拟环境       │ ../data/.venv        │ ./data/.venv         │
+# │ 通用数据目录          │ ../data              │ ./data               │
+# │ Go 缓存目录           │ ../data/go/cache     │ ./data/go/cache      │
+# │ Go PATH 目录          │ ../data/go/path      │ ./data/go/path       │
+# └────────────────────────────────────────────────────────────────────────┘
+#
+# 路径解析说明：
+# - 本文件位于：.devcontainer/example-compose/docker-compose.yml
+# - .env 文件位于：.devcontainer/.env
+# - data 目录位于：.devcontainer/data/
+# - 相对路径：
+#   - .env: ../.env （向上到 .devcontainer/）
+#   - data: ../data/ （向上到 .devcontainer/，然后进入 data/）
+#
+# 复制到 .devcontainer/ 后：
+# - 文件位于：.devcontainer/docker-compose.yml
+# - .env 文件位于：.devcontainer/.env
+# - data 目录位于：.devcontainer/data/
+# - 相对路径：
+#   - .env: .env （同级目录）
+#   - data: ./data/ （同级目录直接进入）
 #
 # 复制命令：
 #   cd .devcontainer
 #   cp example-compose/devcontainer.json devcontainer.json
 #   cp example-compose/docker-compose.yml docker-compose.yml
+#   # 然后按上方对照表修改 docker-compose.yml 中的路径
 #
 # 主要功能：
 # - 定义开发容器服务配置
@@ -109,7 +143,16 @@ services:
     # ========== 环境变量文件配置 ==========
     # 从指定文件加载环境变量。
     # 文件路径相对于 docker-compose.yml 所在目录。
-    # ⚠️ 复制到 .devcontainer/ 目录后，路径保持不变：".env"
+    #
+    # ⚠️ 路径说明：
+    # - 当前：.devcontainer/example-compose/docker-compose.yml
+    # - .env 位置：.devcontainer/.env
+    # - 相对路径：../.env
+    #
+    # 复制到 .devcontainer/ 后：
+    # - 文件位置：.devcontainer/docker-compose.yml
+    # - .env 位置：.devcontainer/.env
+    # - 相对路径：.env （必须修改！）
     #
     # .env 文件格式：
     #   IMAGE_REPO=fsyyft/devcontainer/ubuntu/go
@@ -127,7 +170,7 @@ services:
     #   - 宿主机环境变量优先级最高，会覆盖 .env 文件中的值
     #   - 建议将 .env 文件添加到 .gitignore，避免敏感信息泄露
     #   - 可以提供 .env.example 文件作为模板
-    #   - 确保 .env 文件存在于项目根目录
+    #   - 确保 .env 文件存在于 .devcontainer/ 目录
     env_file:
       - ../.env
 
@@ -198,6 +241,18 @@ services:
 
     # ========== 卷挂载配置 ==========
     # 定义数据卷挂载，用于持久化数据和共享资源。
+    #
+    # ⚠️ 路径说明：这些路径相对于 docker-compose.yml 所在目录
+    #
+    # [当前配置文件位置] .devcontainer/example-compose/docker-compose.yml
+    # [data 目录位置]     .devcontainer/data/
+    # [相对路径]          ../data/ （向上到 .devcontainer/，然后进入 data/）
+    #
+    # [复制到 .devcontainer/ 后]
+    # [配置文件位置]      .devcontainer/docker-compose.yml
+    # [data 目录位置]     .devcontainer/data/
+    # [相对路径]          ./data/ （同级目录直接进入）
+    #
     # 警告 复制到 .devcontainer/ 目录后，卷挂载路径需要变更（使用 ./ 相对路径）
     volumes:
       # ========== Docker Socket 挂载 ==========
@@ -210,19 +265,29 @@ services:
       # ========== 工作空间挂载 ==========
       # 挂载项目工作目录。
       # ${localWorkspaceFolder} 会被 DevContainer 替换为本地项目路径。
+      #
+      # 路径说明：
+      # - ../.. 从 example-compose/ 向上两级到项目根目录
+      # - 复制到 .devcontainer/ 后改为 .. （向上一级到项目根目录）
       - ../..:/development/github.com/fsyyft-go/kratos-layout
 
       # ========== 数据目录挂载 ==========
+      # ⚠️ 注意：以下路径在复制到 .devcontainer/ 后必须修改为 ./data/*
+
       # 挂载 Python 虚拟环境目录，避免每次重建容器时重新安装依赖。
+      # 路径：../data/.venv → .devcontainer/data/.venv
       - ../data/.venv:/development/github.com/fsyyft-go/kratos-layout/.venv
 
       # 挂载通用数据目录，用于持久化其他数据。
+      # 路径：../data → .devcontainer/data/
       - ../data:/data
 
       # 挂载 Go 缓存目录，加速 Go 模块下载。
+      # 路径：../data/go/cache → .devcontainer/data/go/cache
       - ../data/go/cache:/usr/local/go/cache
 
       # 挂载 Go GOPATH 目录，持久化 Go 依赖和工具。
+      # 路径：../data/go/path → .devcontainer/data/go/path
       - ../data/go/path:/usr/local/go/path
 
     # ========== 工作目录配置 ==========

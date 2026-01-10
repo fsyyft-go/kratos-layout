@@ -90,20 +90,53 @@ make devcontainer-init
 cd .devcontainer/docker
 ./scripts/build
 
-# 步骤 2：复制配置文件
-cp example-compose/devcontainer.json ../devcontainer.json
-cp example-compose/docker-compose.yml ../docker-compose.yml
+# 步骤 2：返回 .devcontainer/ 目录并复制配置文件
+cd ..
+cp example-compose/devcontainer.json devcontainer.json
+cp example-compose/docker-compose.yml docker-compose.yml
 
-# 步骤 3：启动 DevContainer
+# 步骤 3：修改配置文件中的路径（必须！）
+# ⚠️ 重要：复制后的配置文件路径不正确，必须修改！
+# 按照"配置修改检查清单"（第 5.3 节）修改 docker-compose.yml 中的路径：
+#
+# 需要修改的配置项：
+# - env_file 配置（第 ~159 行）：../.env → .env
+# - 工作空间挂载（第 ~213 行）：../.. → ..
+# - 数据目录挂载（第 ~217-226 行）：../data/* → ./data/*
+#
+# 快速修改命令：
+sed -i 's|env_file:|env_file:|' docker-compose.yml
+sed -i 's|../.env|.env|' docker-compose.yml
+sed -i 's|../..:|..:|' docker-compose.yml
+sed -i 's|../data/|./data/|g' docker-compose.yml
+#
+# 详细修改步骤请参考本文档"5.3 配置文件移动后的路径修改清单"章节
+
+# 步骤 4：启动 DevContainer
 # 使用 VS Code 打开项目，选择 "在 DevContainer 中重新打开"
 ```
 
 #### 场景 2：完全控制（Dockerfile 方式）
 ```bash
-# 步骤 1：复制配置文件
+# 步骤 1：进入 .devcontainer/ 目录并复制配置文件
+cd .devcontainer
 cp example-dockerfile/devcontainer.json devcontainer.json
 
-# 步骤 2：启动 DevContainer
+# 步骤 2：修改配置文件中的路径（必须！）
+# ⚠️ 重要：复制后的配置文件路径不正确，必须修改！
+# 按照"配置修改检查清单"（第 5.3 节）修改 devcontainer.json 中的路径：
+#
+# 需要修改的配置项：
+# - dockerFile 配置：../docker/Dockerfile → docker/Dockerfile
+# - build.context 配置：../docker/ → docker/
+#
+# 快速修改命令：
+sed -i 's|"dockerFile": "../docker/Dockerfile"|"dockerFile": "docker/Dockerfile"|' devcontainer.json
+sed -i 's|"context": "../docker/"|"context": "docker/"|' devcontainer.json
+#
+# 详细修改步骤请参考本文档"5.3 配置文件移动后的路径修改清单"章节
+
+# 步骤 3：启动 DevContainer
 # 使用 VS Code 打开项目，选择 "在 DevContainer 中重新打开"
 # VS Code 会自动构建容器镜像（首次需要 15-30 分钟）
 ```
@@ -145,6 +178,17 @@ Dockerfile 方式的特点：
 ```bash
 cd .devcontainer
 cp example-dockerfile/devcontainer.json devcontainer.json
+
+# ⚠️ 重要：复制后必须修改路径！
+echo "正在修正路径配置..."
+# 需要修改的配置项：
+# - dockerFile 配置：../docker/Dockerfile → docker/Dockerfile
+# - build.context 配置：../docker/ → docker/
+sed -i 's|"dockerFile": "../docker/Dockerfile"|"dockerFile": "docker/Dockerfile"|' devcontainer.json
+sed -i 's|"context": "../docker/"|"context": "docker/"|' devcontainer.json
+echo "✅ 路径配置已修正"
+#
+# 详细修改步骤请参考本文档"5.3 配置文件移动后的路径修改清单"章节
 ```
 
 #### 步骤 2：配置环境变量（可选）
@@ -293,6 +337,20 @@ CLAUDE_CODE_VERSION=2.x ./scripts/build
 cd .devcontainer
 cp example-compose/devcontainer.json devcontainer.json
 cp example-compose/docker-compose.yml docker-compose.yml
+
+# ⚠️ 重要：复制后必须修改路径！
+echo "正在修正路径配置..."
+# 需要修改的配置项：
+# - env_file 配置：../.env → .env
+# - 工作空间挂载：../.. → ..
+# - 数据目录挂载：../data/* → ./data/*
+sed -i 's|env_file:|env_file:|' docker-compose.yml
+sed -i 's|../.env|.env|' docker-compose.yml
+sed -i 's|../..:|..:|' docker-compose.yml
+sed -i 's|../data/|./data/|g' docker-compose.yml
+echo "✅ 路径配置已修正"
+#
+# 详细修改步骤请参考本文档"5.3 配置文件移动后的路径修改清单"章节
 ```
 
 #### 步骤 3：配置环境变量（可选）
@@ -444,11 +502,17 @@ cd .devcontainer
 cp example-dockerfile/devcontainer.json devcontainer.json
 
 # 步骤 2：修改路径配置（必须）
-# 根据下一节的说明修改 dockerFile 和 build.context 路径
+echo "正在修正路径配置..."
+# 需要修改的配置项：
+# - dockerFile 配置：../docker/Dockerfile → docker/Dockerfile
+# - build.context 配置：../docker/ → docker/
+sed -i 's|"dockerFile": "../docker/Dockerfile"|"dockerFile": "docker/Dockerfile"|' devcontainer.json
+sed -i 's|"context": "../docker/"|"context": "docker/"|' devcontainer.json
+echo "✅ 路径配置已修正"
 ```
 
 **注意事项**：
-- ⚠️ **必须修改**：`dockerFile` 和 `build.context` 路径
+- ⚠️ **必须修改**：`dockerFile` 和 `build.context` 路径（上方命令已自动修改）
 - ⚠️ **确保存在**：`.env` 文件（如果使用环境变量）
 - ✅ **可选**：修改 `containerEnv` 中的环境变量配置
 
@@ -460,12 +524,21 @@ cd .devcontainer
 cp example-compose/devcontainer.json devcontainer.json
 cp example-compose/docker-compose.yml docker-compose.yml
 
-# 步骤 2：检查配置
-# 根据下一节的说明检查路径配置
+# 步骤 2：修改路径配置（必须！）
+echo "正在修正路径配置..."
+# 需要修改的配置项：
+# - env_file 配置：../.env → .env
+# - 工作空间挂载：../.. → ..
+# - 数据目录挂载：../data/* → ./data/*
+sed -i 's|env_file:|env_file:|' docker-compose.yml
+sed -i 's|../.env|.env|' docker-compose.yml
+sed -i 's|../..:|..:|' docker-compose.yml
+sed -i 's|../data/|./data/|g' docker-compose.yml
+echo "✅ 路径配置已修正"
 ```
 
 **注意事项**：
-- ✅ **路径配置**：大部分路径保持不变（使用相对路径）
+- ⚠️ **必须修改**：docker-compose.yml 中的路径配置（上方命令已自动修改）
 - ⚠️ **确保存在**：`.env` 文件在项目根目录（如果使用环境变量）
 - ⚠️ **确保存在**：数据目录（运行 `make devcontainer-init` 创建）
 - ✅ **可选**：修改环境变量或镜像版本
@@ -503,34 +576,132 @@ cp example-compose/docker-compose.yml docker-compose.yml
 
 #### Docker Compose 方式修改清单
 
-将 `example-compose/` 中的文件复制到 `.devcontainer/` 后，**大部分路径保持不变**：
+⚠️ **重要提示**：将 `example-compose/` 中的配置复制到 `.devcontainer/` 后，**必须修改部分路径**！
 
-| 配置项 | 原路径 | 新路径 | 是否需要修改 | 说明 |
-|--------|--------|--------|-------------|------|
-| `dockerComposeFile` | `"docker-compose.yml"` | `"docker-compose.yml"` | ❌ 不变 | 同级目录 |
-| `service` | `"app"` | `"app"` | ❌ 不变 | 服务名 |
-| `env_file` | `"../.env"` | `"../.env"` | ❌ 不变 | 相对路径相同 |
-| 卷挂载路径 | `"../../data/*"` | `"../../data/*"` | ❌ 不变 | 相对路径相同 |
+##### 路径对照表
 
-**说明**：
-- Docker Compose 中的路径使用相对路径，无论配置文件在哪个目录，指向的都是相同的目标
-- `../.env`：从 `example-compose/` 或 `.devcontainer/` 到项目根目录的 `.env` 文件，路径都是 `../.env`
-- `../../data/*`：从 `example-compose/` 或 `.devcontainer/` 到 `.devcontainer/data/` 目录，路径都是 `../../data/*`
+| 配置项 | example-compose/ 路径 | .devcontainer/ 路径 | 是否需要修改 |
+|--------|----------------------|-------------------|-------------|
+| `dockerComposeFile` | `"docker-compose.yml"` | `"docker-compose.yml"` | ❌ 否 |
+| `service` | `"app"` | `"app"` | ❌ 否 |
+| **env_file** | `"../.env"` | `".env"` | ✅ **是** |
+| **工作空间挂载** | `"../.."` | `".."` | ✅ **是** |
+| **data/.venv** | `"../data/.venv"` | `"./data/.venv"` | ✅ **是** |
+| **data** | `"../data"` | `"./data"` | ✅ **是** |
+| **data/go/cache** | `"../data/go/cache"` | `"./data/go/cache"` | ✅ **是** |
+| **data/go/path** | `"../data/go/path"` | `"./data/go/path"` | ✅ **是** |
+
+##### 路径解析说明
+
+**为什么路径不同？**
+
+```
+# example-compose/ 目录结构
+.devcontainer/
+├── .env                    # 环境变量文件
+├── example-compose/
+│   ├── docker-compose.yml
+│   └── devcontainer.json
+└── data/
+
+从 example-compose/ 到 .env 的相对路径：../.env
+从 example-compose/ 到 data/ 的相对路径：../data/
+
+# 复制后结构
+.devcontainer/
+├── .env                    # 环境变量文件
+├── docker-compose.yml      # 从 example-compose/ 复制
+├── devcontainer.json       # 从 example-compose/ 复制
+└── data/
+
+从 .devcontainer/ 到 .env 的相对路径：.env
+从 .devcontainer/ 到 data/ 的相对路径：./data/
+```
+
+**必须修改的路径**（在 docker-compose.yml 中）：
+- env_file：`../.env` → `.env`
+- 工作空间挂载：`../..` → `..`
+- 数据目录：`../data/*` → `./data/*`
+
+##### 配置修改检查清单
+
+复制配置文件后，请按以下清单逐项修改：
+
+**步骤 1：复制文件**
+
+```bash
+cd .devcontainer
+cp example-compose/devcontainer.json devcontainer.json
+cp example-compose/docker-compose.yml docker-compose.yml
+```
+
+**步骤 2：修改 docker-compose.yml 中的路径**
+
+- [ ] 第 ~159 行：env_file 配置
+  ```yaml
+  # 修改前
+  env_file:
+    - ../.env
+  # 修改后
+  env_file:
+    - .env
+  ```
+
+找到 `volumes:` 配置部分，修改以下路径：
+
+- [ ] 第 ~213 行：工作空间挂载
+  ```yaml
+  # 修改前
+  - ../..:/development/github.com/fsyyft-go/kratos-layout
+  # 修改后
+  - ..:/development/github.com/fsyyft-go/kratos-layout
+  ```
+
+- [ ] 第 ~217 行：Python 虚拟环境
+  ```yaml
+  # 修改前
+  - ../data/.venv:/development/github.com/fsyyft-go/kratos-layout/.venv
+  # 修改后
+  - ./data/.venv:/development/github.com/fsyyft-go/kratos-layout/.venv
+  ```
+
+- [ ] 第 ~220 行：通用数据目录
+  ```yaml
+  # 修改前
+  - ../data:/data
+  # 修改后
+  - ./data:/data
+  ```
+
+- [ ] 第 ~223 行：Go 缓存目录
+  ```yaml
+  # 修改前
+  - ../data/go/cache:/usr/local/go/cache
+  # 修改后
+  - ./data/go/cache:/usr/local/go/cache
+  ```
+
+- [ ] 第 ~226 行：Go PATH 目录
+  ```yaml
+  # 修改前
+  - ../data/go/path:/usr/local/go/path
+  # 修改后
+  - ./data/go/path:/usr/local/go/path
+  ```
+
+**步骤 3：验证配置**
+
+```bash
+# 检查 docker-compose.yml 语法
+docker-compose -f .devcontainer/docker-compose.yml config
+
+# 验证 data 目录存在
+ls -la .devcontainer/data/
+```
 
 **需要确保的前置条件**：
-- ✅ `.env` 文件存在于项目根目录（或创建一个）
+- ✅ `.env` 文件存在于 `.devcontainer/` 目录（或从 `.devcontainer/docker/.env` 复制）
 - ✅ 数据目录已创建（运行 `make devcontainer-init`）
-
-**无需修改示例**：
-
-```yaml
-# example-compose/docker-compose.yml 和 .devcontainer/docker-compose.yml 配置相同
-volumes:
-  - ../../data/.venv:/development/github.com/fsyyft-go/kratos-layout/.venv
-  - ../../data:/data
-  - ../../data/go/cache:/usr/local/go/cache
-  - ../../data/go/path:/usr/local/go/path
-```
 
 ## 6. 环境变量配置
 
@@ -819,8 +990,14 @@ cp .devcontainer/example-compose/devcontainer.json .devcontainer/devcontainer.js
 
 2. **查看容器日志**：
    ```bash
-   # 查看最近创建的容器日志
-   docker logs $(docker ps -a | grep -E 'kratos|dev' | head -1 | awk '{print $1}')
+   # 方式 1：使用容器名称（推荐）
+   docker logs kratos-layout-dev
+
+   # 方式 2：查看最近创建的容器
+   docker logs $(docker ps -a -q -l)
+
+   # 方式 3：列出所有相关容器后查看
+   docker ps -a | grep kratos
    ```
 
 3. **检查端口占用**：
@@ -934,7 +1111,10 @@ lsof -i :8000
 lsof -i :8001
 lsof -i :9000
 
-# 停止进程（替换 PID）
+# 停止进程（替换 PID，先尝试优雅终止）
+kill <PID>
+
+# 如果优雅终止无效，再使用强制终止
 kill -9 <PID>
 ```
 
