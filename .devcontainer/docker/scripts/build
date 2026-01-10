@@ -1,0 +1,245 @@
+#!/bin/bash
+
+# Docker 镜像构建脚本
+# 使用方法：
+#   ./build                                      # 使用默认配置构建
+#   CLAUDE_CODE_VERSION=2.x ./build              # 构建 Claude Code 2.x 版本
+#
+# .env 文件中的构建时环境变量：
+#   UBUNTU_VERSION          : Ubuntu 基础镜像版本（必需，如 24.04）
+#   CONTAINER_NAME_PREFIX   : 容器名称前缀（可选，默认 quicktest）
+#   SSH_PORT_MAPPING        : SSH 端口映射（可选，默认 2222:22）
+#
+# 其他环境变量：
+#   CLAUDE_CODE_VERSION     : Claude Code 版本选择（可选，1.x 或 2.x，默认 1.x）
+
+set -e  # 遇到错误立即退出
+
+# 项目配置。
+IMAGE_REPO="fsyyft/devcontainer/ubuntu/go"
+
+# 切换到脚本所在目录。
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$SCRIPT_DIR"/..
+
+# 颜色输出。
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
+# 日志函数。
+log_info() {
+    echo -e "${BLUE}[INFO]${NC} $1"
+}
+
+log_warn() {
+    echo -e "${YELLOW}[WARN]${NC} $1"
+}
+
+log_error() {
+    echo -e "${RED}[ERROR]${NC} $1"
+}
+
+log_success() {
+    echo -e "${GREEN}[SUCCESS]${NC} $1"
+}
+
+# 检查 Docker 是否安装和运行。
+check_docker() {
+    log_info "检查 Docker 安装状态..."
+
+    if ! command -v docker &> /dev/null; then
+        log_error "Docker 未安装。请先安装 Docker："
+        log_error "  - macOS: brew install --cask docker"
+        log_error "  - Ubuntu: sudo apt-get install docker.io"
+        log_error "  - CentOS: sudo yum install docker"
+        exit 1
+    fi
+
+    if ! docker info &> /dev/null; then
+        log_error "Docker 未运行或无权限访问。请确保："
+        log_error "  1. Docker Desktop 已启动"
+        log_error "  2. 当前用户在 docker 组中：sudo usermod -aG docker \$USER"
+        log_error "  3. 重新登录或运行：newgrp docker"
+        exit 1
+    fi
+
+    local docker_version=$(docker --version)
+    log_success "Docker 检查通过：$docker_version"
+}
+
+# 检查 .env 文件。
+check_env_file() {
+    log_info "检查环境配置文件..."
+
+    if [ ! -f "../.env" ]; then
+        log_error ".env 文件不存在。请复制 .env.example 并配置："
+        log_error "  cp .env.example .env"
+        log_error "  vim .env  # 编辑配置文件"
+        exit 1
+    fi
+
+    # 检查必要的环境变量。
+    local required_vars=("UBUNTU_VERSION")
+    local missing_vars=()
+
+    for var in "${required_vars[@]}"; do
+        if ! grep -q "^${var}=" ../.env; then
+            missing_vars+=("$var")
+        fi
+    done
+
+    if [ ${#missing_vars[@]} -ne 0 ]; then
+        log_error "缺少必要的环境变量："
+        printf '  - %s\n' "${missing_vars[@]}"
+        log_error "请在 .env 文件中配置这些变量。"
+        exit 1
+    fi
+
+    log_success ".env 文件检查通过"
+}
+
+# 加载环境变量。
+load_env_vars() {
+    log_info "加载环境变量..."
+    set -a  # 自动导出所有变量
+    source ../.env
+    set +a
+
+    # 设置 Claude Code 版本（默认为 1.x，可通过环境变量 CLAUDE_CODE_VERSION 覆盖）
+    export CLAUDE_CODE_VERSION=${CLAUDE_CODE_VERSION:-1.x}
+
+    log_success "环境变量已加载"
+    log_info "Claude Code 版本：$CLAUDE_CODE_VERSION"
+}
+
+# 生成构建标签。
+generate_build_tag() {
+    # 获取当前日期 (YYMMDD 格式)
+    local date_part=$(date +%y%m%d)
+
+    # 从现有镜像中找到最大的序号
+    local max_counter=0
+    # 新的标签模式：{UBUNTU_VERSION}.{日期}{序号}
+    local image_pattern="${IMAGE_REPO}:${UBUNTU_VERSION}.${date_part}"
+
+    # 获取所有匹配的标签
+    local existing_tags=$(docker images --format "{{.Repository}}:{{.Tag}}" | grep "^${image_pattern}" | sed "s#${image_pattern}##" || true)
+
+    # 找到最大的序号
+    for tag in $existing_tags; do
+        if [[ $tag =~ ^[0-9]+$ ]] && [ "$tag" -gt "$max_counter" ]; then
+            max_counter=$tag
+        fi
+    done
+
+    # 序号 +1
+    local counter=$((10#$max_counter + 1))
+
+    # 格式化为两位数
+    local counter_formatted=$(printf "%02d" "$counter")
+
+    # 生成完整标签：{版本号}.{日期}{序号}
+    local tag="${UBUNTU_VERSION}.${date_part}${counter_formatted}"
+
+    echo "$tag"
+}
+
+# 主构建函数
+main() {
+    log_info "开始 Docker 镜像构建..."
+    log_info "项目：${IMAGE_REPO}"
+    echo
+
+    # 执行检查
+    check_docker
+    echo
+    check_env_file
+    echo
+    load_env_vars
+    echo
+
+    # 从 IMAGE_REPO 中提取镜像名称（用于文件名和容器名）
+    local image_base_name=$(basename "$IMAGE_REPO")
+
+    # 设置容器名称前缀和端口映射（使用默认值或环境变量）
+    local container_prefix="${CONTAINER_NAME_PREFIX:-quicktest}"
+    local port_mapping="${SSH_PORT_MAPPING:-2222:22}"
+
+    # 验证端口映射格式
+    if ! [[ "$port_mapping" =~ ^[0-9]+:[0-9]+$ ]]; then
+        log_error "SSH_PORT_MAPPING 格式错误：$port_mapping"
+        log_error "正确格式应为：主机端口:容器端口（如 2222:22）"
+        exit 1
+    fi
+
+    # 生成标签
+    local tag=$(generate_build_tag)
+    local image_name="${IMAGE_REPO}:$tag"
+    log_success "构建标签：$tag (基于现有镜像序号递增)"
+    echo
+
+    # 开始构建
+    log_info "开始构建 Docker 镜像..."
+    log_info "镜像名称：$image_name"
+    log_info "Claude Code 版本：$CLAUDE_CODE_VERSION"
+
+    # 确保使用 BuildKit 构建。
+    export DOCKER_BUILDKIT=1
+    if docker build --build-arg UBUNTU_VERSION="$UBUNTU_VERSION" --build-arg CLAUDE_CODE_VERSION="$CLAUDE_CODE_VERSION" -t "$image_name" .; then
+        log_success "Docker 镜像构建成功！"
+        log_info "镜像：$image_name"
+
+        # 更新 latest 标签
+        latest_image="${image_name%:*}:latest"
+        if docker tag "$image_name" "$latest_image"; then
+            log_success "已更新 latest 标签：$latest_image"
+        else
+            log_warning "更新 latest 标签失败，但构建成功"
+        fi
+
+        # 获取镜像架构（用于文件名）
+        local platform=$(docker inspect --format='{{.Architecture}}' "$image_name")
+
+        log_info "可使用以下命令运行："
+        log_info "  docker run -d --env-file .env -p ${port_mapping} --name ${container_prefix}-${image_base_name}-$tag $image_name"
+        echo
+        log_info "或者运行最新版本："
+        log_info "  docker run -d --env-file .env -p ${port_mapping} --name ${container_prefix}-${image_base_name}-latest $latest_image"
+        echo
+        log_info "构建信息："
+        log_info "  - Ubuntu 版本：$UBUNTU_VERSION"
+        log_info "  - Claude Code 版本：$CLAUDE_CODE_VERSION"
+        log_info "  - 镜像架构：$platform"
+        log_info "  - 容器名称前缀：$container_prefix"
+        log_info "  - SSH 端口映射：$port_mapping"
+        echo
+        log_info "镜像导出和导入："
+        log_info "  # 使用 save 脚本导出镜像（自动压缩和打包）"
+        log_info "  ./scripts/save $image_name"
+        log_info "  # 输出文件：${image_base_name}-${platform}:${tag}.{tar,xz,7z} 及对应的 .sha1 文件"
+        echo
+        log_info "  # 使用 import 脚本导入镜像（自动解压和验证）"
+        log_info "  ./scripts/import ${image_base_name}-${platform}:${tag}.7z"
+        echo
+        log_info "导入流程："
+        log_info "  - .7z:  自动解压 7z -> 验证 SHA1 -> 解压 xz -> 导入镜像"
+        log_info "  - .tar.xz: 验证 SHA1 -> 解压 xz -> 导入镜像"
+        log_info "  - .tar: 验证 SHA1 -> 导入镜像"
+    else
+        log_error "Docker 镜像构建失败！"
+        exit 1
+    fi
+}
+
+# 检查是否在正确的目录
+if [ ! -f "Dockerfile" ]; then
+    log_error "未找到 Dockerfile。请确保在正确的目录中运行此脚本。"
+    log_error "当前目录：$(pwd)"
+    exit 1
+fi
+
+# 执行主函数
+main "$@"
