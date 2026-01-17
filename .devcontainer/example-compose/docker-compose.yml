@@ -94,7 +94,25 @@ name: ${COMPOSE_PROJECT_NAME:-kratos-layout-dev}
 services:
   # ========== 开发容器服务 ==========
   # 主要的开发容器服务，包含完整的 Go 开发环境。
-  app:
+  kratos-layout-dev-workspace:
+    # MCP 配置说明（以 duckduckgo 为例）：
+    #
+    # 1. 代理传递路径：
+    #    宿主机环境变量 → Docker 容器（通过 environment 传入） → MCP 容器（通过 docker run -e 传入）
+    #
+    # 2. 添加 duckduckgo MCP（用户级，对所有项目可见）：
+    #    docker exec <container> bash -c '
+    #      claude mcp remove duckduckgo 2>/dev/null
+    #      claude mcp add -s user duckduckgo -- docker run -i --rm -e "ALL_PROXY=${ALL_PROXY}" mcp/duckduckgo
+    #    '
+    #
+    # 3. MCP 作用域说明：
+    #    - 用户级（-s user）：对所有项目可见，配置在根级别 mcpServers
+    #    - 项目级（-s local 或默认）：仅当前项目，配置在 projects./path/mcpServers
+    #    - 优先级：项目级覆盖用户级
+    #
+    # 4. 重复添加：MCP 同名已存在时会报错，需要先 remove 再 add
+    
     # ========== 镜像配置 ==========
     # 使用预构建的 Docker 镜像，无需现场构建。
     # ✅ 复制到 .devcontainer/ 目录后，镜像配置保持不变

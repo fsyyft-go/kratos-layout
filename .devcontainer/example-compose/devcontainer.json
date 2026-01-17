@@ -54,8 +54,8 @@
   "dockerComposeFile": "docker-compose.yml",
 
   // 要使用的服务名称（对应 docker-compose.yml 中的服务名）。
-  // ✅ 复制到 .devcontainer/ 目录后，服务名保持不变："service": "app"
-  "service": "app",
+  // ✅ 复制到 .devcontainer/ 目录后，服务名保持不变："service": "kratos-layout-dev-workspace"
+  "service": "kratos-layout-dev-workspace",
 
   // ========== 工作空间配置 ==========
   // 容器内的工作目录路径。

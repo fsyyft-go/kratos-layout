@@ -34,6 +34,7 @@ apt-get -y update && apt-get install -y \
     nano \
     emacs-nox \
     git \
+    git-lfs \
     tree \
     htop \
     less \
