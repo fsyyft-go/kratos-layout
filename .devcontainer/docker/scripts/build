@@ -3,7 +3,7 @@
 # Docker 镜像构建脚本
 # 使用方法：
 #   ./build                                      # 使用默认配置构建
-#   CLAUDE_CODE_VERSION=2.x ./build              # 构建 Claude Code 2.x 版本
+#   CLAUDE_CODE_VERSION=2.1.0 ./build            # 构建指定 Claude Code 版本
 #
 # .env 文件中的构建时环境变量：
 #   UBUNTU_VERSION          : Ubuntu 基础镜像版本（必需，如 24.04）
@@ -11,7 +11,7 @@
 #   SSH_PORT_MAPPING        : SSH 端口映射（可选，默认 2222:22）
 #
 # 其他环境变量：
-#   CLAUDE_CODE_VERSION     : Claude Code 版本选择（可选，1.x 或 2.x，默认 1.x）
+#   CLAUDE_CODE_VERSION     : Claude Code 版本（可选，如 2.1.0、1.0.126 或 latest，默认 latest）
 
 set -e  # 遇到错误立即退出
 
@@ -108,11 +108,35 @@ load_env_vars() {
     source ../.env
     set +a
 
-    # 设置 Claude Code 版本（默认为 1.x，可通过环境变量 CLAUDE_CODE_VERSION 覆盖）
-    export CLAUDE_CODE_VERSION=${CLAUDE_CODE_VERSION:-1.x}
+    # 设置 Claude Code 版本（默认为 latest，可通过环境变量 CLAUDE_CODE_VERSION 覆盖）
+    export CLAUDE_CODE_VERSION=${CLAUDE_CODE_VERSION:-latest}
+
+    # 设置 Go 版本（默认为 go1.25，可通过环境变量 GO_VERSION 覆盖）
+    export GO_VERSION=${GO_VERSION:-go1.25}
+
+    # 设置 Gemini CLI 版本（默认为 latest，可通过环境变量 GEMINI_VERSION 覆盖）
+    export GEMINI_VERSION=${GEMINI_VERSION:-latest}
+
+    # 设置 Qwen Code 版本（默认为 latest，可通过环境变量 QWEN_VERSION 覆盖）
+    export QWEN_VERSION=${QWEN_VERSION:-latest}
+
+    # 设置 OpenAI CodeX 版本（默认为 latest，可通过环境变量 CODEX_VERSION 覆盖）
+    export CODEX_VERSION=${CODEX_VERSION:-latest}
+
+    # 设置 OpenSpec 版本（默认为 latest，可通过环境变量 OPENSPEC_VERSION 覆盖）
+    export OPENSPEC_VERSION=${OPENSPEC_VERSION:-latest}
+
+    # 设置 Tencent CodeBuddy 版本（默认为 latest，可通过环境变量 CODEBUDDY_VERSION 覆盖）
+    export CODEBUDDY_VERSION=${CODEBUDDY_VERSION:-latest}
 
     log_success "环境变量已加载"
     log_info "Claude Code 版本：$CLAUDE_CODE_VERSION"
+    log_info "Go 版本：$GO_VERSION"
+    log_info "Gemini CLI 版本：$GEMINI_VERSION"
+    log_info "Qwen Code 版本：$QWEN_VERSION"
+    log_info "OpenAI CodeX 版本：$CODEX_VERSION"
+    log_info "OpenSpec 版本：$OPENSPEC_VERSION"
+    log_info "Tencent CodeBuddy 版本：$CODEBUDDY_VERSION"
 }
 
 # 生成构建标签。
@@ -184,11 +208,27 @@ main() {
     # 开始构建
     log_info "开始构建 Docker 镜像..."
     log_info "镜像名称：$image_name"
+    log_info "Go 版本：$GO_VERSION"
     log_info "Claude Code 版本：$CLAUDE_CODE_VERSION"
+    log_info "Gemini CLI 版本：$GEMINI_VERSION"
+    log_info "Qwen Code 版本：$QWEN_VERSION"
+    log_info "OpenAI CodeX 版本：$CODEX_VERSION"
+    log_info "OpenSpec 版本：$OPENSPEC_VERSION"
+    log_info "Tencent CodeBuddy 版本：$CODEBUDDY_VERSION"
 
     # 确保使用 BuildKit 构建。
     export DOCKER_BUILDKIT=1
-    if docker build --build-arg UBUNTU_VERSION="$UBUNTU_VERSION" --build-arg CLAUDE_CODE_VERSION="$CLAUDE_CODE_VERSION" -t "$image_name" .; then
+    if docker build \
+        --build-arg UBUNTU_VERSION="$UBUNTU_VERSION" \
+        --build-arg GO_VERSION="$GO_VERSION" \
+        --build-arg CLAUDE_CODE_VERSION="$CLAUDE_CODE_VERSION" \
+        --build-arg GEMINI_VERSION="$GEMINI_VERSION" \
+        --build-arg QWEN_VERSION="$QWEN_VERSION" \
+        --build-arg CODEX_VERSION="$CODEX_VERSION" \
+        --build-arg OPENSPEC_VERSION="$OPENSPEC_VERSION" \
+        --build-arg CODEBUDDY_VERSION="$CODEBUDDY_VERSION" \
+        -t "$image_name" \
+        .; then
         log_success "Docker 镜像构建成功！"
         log_info "镜像：$image_name"
 
@@ -211,7 +251,13 @@ main() {
         echo
         log_info "构建信息："
         log_info "  - Ubuntu 版本：$UBUNTU_VERSION"
+        log_info "  - Go 版本：$GO_VERSION"
         log_info "  - Claude Code 版本：$CLAUDE_CODE_VERSION"
+        log_info "  - Gemini CLI 版本：$GEMINI_VERSION"
+        log_info "  - Qwen Code 版本：$QWEN_VERSION"
+        log_info "  - OpenAI CodeX 版本：$CODEX_VERSION"
+        log_info "  - OpenSpec 版本：$OPENSPEC_VERSION"
+        log_info "  - Tencent CodeBuddy 版本：$CODEBUDDY_VERSION"
         log_info "  - 镜像架构：$platform"
         log_info "  - 容器名称前缀：$container_prefix"
         log_info "  - SSH 端口映射：$port_mapping"

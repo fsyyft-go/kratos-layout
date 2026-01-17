@@ -5,8 +5,13 @@ set -e
 # Ubuntu Go 安装脚本
 # =====================================================
 
-# Go 版本号（需要指定，例如：go1.25.5）
-GO_VERSION="${GO_VERSION:-go1.25.5}"
+# Go 版本号（需要指定，例如：go1.25）
+GO_VERSION="${GO_VERSION:-go1.25}"
+
+# 如果 GO_VERSION 不是以 "go" 开头，则自动添加前缀
+if [[ ! "$GO_VERSION" =~ ^go ]]; then
+    GO_VERSION="go${GO_VERSION}"
+fi
 
 echo "Starting Go installation..."
 echo "Go version: $GO_VERSION"
@@ -147,6 +152,3 @@ go install github.com/spf13/cobra-cli@v1.3.0
 # go install github.com/muesli/termenv/cmd/genaccent@v0.16.0
 
 echo "==> 所有工具安装完成！"
-
-# 修改文件所有者。
-chown -R fsyyft /usr/local/go/

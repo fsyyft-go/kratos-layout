@@ -31,6 +31,29 @@ initialize_ssh_environment() {
     echo "  - Connect using: ssh root@localhost -p <port>"
 }
 
+# 更新 OpenCode 配置的函数。
+# 可以使用 opencode -m zhipuai-coding-plan/glm-4.7 使用。
+update_opencode_auth_json() {
+    # 检查 ANTHROPIC_BASE_URL 是否等于预期值。
+    if [ "$ANTHROPIC_BASE_URL" != "https://open.bigmodel.cn/api/anthropic" ]; then
+        return
+    fi
+
+    # 直接创建 auth.json 文件。
+    local AUTH_FILE="$HOME/.local/share/opencode/auth.json"
+    local AUTH_DIR="$HOME/.local/share/opencode"
+
+    # 确保目录存在。
+    mkdir -p "$AUTH_DIR"
+
+    # 使用环境变量创建新的 auth.json 文件。
+    jq -n --arg key "$ANTHROPIC_API_KEY" \
+       '{"zhipuai-coding-plan": {"type": "api", "key": $key}}' \
+       > "$AUTH_FILE"
+}
+
+update_opencode_auth_json
+
 # 根据参数和环境变量决定启动模式。
 if [ "$START_SSH" != "no" ] && [ $# -eq 0 ]; then
     # 默认：只启动 SSH（前台模式）。

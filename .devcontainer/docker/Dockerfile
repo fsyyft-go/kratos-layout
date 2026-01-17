@@ -31,6 +31,7 @@ RUN echo 'alias ll="clear;ls -aihl --color=tty --time-style=long-iso"' >> /root/
 
 COPY resources/clean.system.sh /usr/bin/clean.system.sh
 COPY resources/install.apt.sh /usr/bin/install.apt.sh
+COPY resources/install.docker.cli.sh /usr/bin/install.docker.cli.sh
 COPY resources/install.zsh.sh /usr/bin/install.zsh.sh
 
 # 配置 APT 源为清华大学镜像，加速包下载。
@@ -42,6 +43,9 @@ RUN --mount=type=cache,target=/var/cache/apt,id=apt-cache \
     chmod +x /usr/bin/install.apt.sh && \
     /usr/bin/install.apt.sh && \
     rm -rfv /usr/bin/install.apt.sh && \
+    chmod +x /usr/bin/install.docker.cli.sh && \
+    /usr/bin/install.docker.cli.sh && \
+    rm -rfv /usr/bin/install.docker.cli.sh && \
     du -sh /var/cache/apt /var/lib/apt/lists 2>/dev/null | xargs echo "APT cache sizes:"
 
 # 配置系统语言环境。
@@ -56,6 +60,8 @@ RUN chmod +x /usr/bin/install.zsh.sh && \
     su - fsyyft -c /usr/bin/install.zsh.sh && \
     rm -rfv /usr/bin/install.zsh.sh
 
+# 定义 Go 版本，允许通过外部传入：--build-arg GO_VERSION="$GO_VERSION"，查询最新版本：curl -s https://go.dev/VERSION\?m\=text。
+ARG GO_VERSION=1.25
 COPY resources/install.go.sh /usr/bin/install.go.sh
 
 # 执行 Go 工具安装，使用 BuildKit 缓存。
@@ -64,6 +70,9 @@ RUN --mount=type=cache,target=/go/pkg/mod,id=go-mod-cache \
     /usr/bin/install.go.sh && \
     rm -rfv /usr/bin/install.go.sh && \
     du -sh /go/pkg/mod | xargs echo "Go module cache size:"
+
+# 添加 Go 版本标签。
+LABEL net.ppno.app.go.version="${GO_VERSION}"
 
 # 配置 SSH 服务。
 RUN mkdir -p /var/run/sshd \
@@ -81,8 +90,35 @@ EXPOSE 22
 
 COPY resources/install.node.sh /usr/bin/install.node.sh
 
-# 设置构建参数：Claude Code 版本选择（默认为 1.x，可选 2.x）。
-ARG CLAUDE_CODE_VERSION=1.x
+# 设置构建参数：Claude Code 版本（默认为 latest）。
+# 可使用具体版本号（如 2.1.0、1.0.126）或 latest。
+# 查看最新版本：npm view @anthropic-ai/claude-code versions。
+ARG CLAUDE_CODE_VERSION=latest
+
+# 设置构建参数：Gemini CLI 版本（默认为 latest）。
+# 可使用具体版本号（如 0.9.0、0.10.0）或 latest。
+# 查看最新版本：npm view @google/gemini-cli versions。
+ARG GEMINI_VERSION=latest
+
+# 设置构建参数：Qwen Code 版本（默认为 latest）。
+# 可使用具体版本号（如 0.0.15、0.1.0）或 latest。
+# 查看最新版本：npm view @qwen-code/qwen-code versions。
+ARG QWEN_VERSION=latest
+
+# 设置构建参数：OpenAI CodeX 版本（默认为 latest）。
+# 可使用具体版本号或 latest。
+# 查看最新版本：npm view @openai/codex versions。
+ARG CODEX_VERSION=latest
+
+# 设置构建参数：OpenSpec 版本（默认为 latest）。
+# 可使用具体版本号或 latest。
+# 查看最新版本：npm view @fission-ai/openspec versions。
+ARG OPENSPEC_VERSION=latest
+
+# 设置构建参数：Tencent CodeBuddy 版本（默认为 latest）。
+# 可使用具体版本号或 latest。
+# 查看最新版本：npm view @tencent-ai/codebuddy-code versions。
+ARG CODEBUDDY_VERSION=latest
 
 # 设置外部环境变量（Claude Code 相关）。
 ENV CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1
@@ -96,6 +132,13 @@ RUN --mount=type=cache,target=/root/.npm,id=npm-cache \
     /usr/bin/install.node.sh && \
     rm -rfv /usr/bin/install.node.sh && \
     du -sh /root/.npm 2>/dev/null | xargs echo "NPM cache size:"
+
+LABEL net.ppno.app.claude-code.version="${CLAUDE_CODE_VERSION}"
+LABEL net.ppno.app.gemini.version="${GEMINI_VERSION}"
+LABEL net.ppno.app.qwen.version="${QWEN_VERSION}"
+LABEL net.ppno.app.codex.version="${CODEX_VERSION}"
+LABEL net.ppno.app.openspec.version="${OPENSPEC_VERSION}"
+LABEL net.ppno.app.codebuddy.version="${CODEBUDDY_VERSION}"
 
 # 安装 OpenCode 工具。
 RUN curl -fsSL https://opencode.ai/install | bash && \
